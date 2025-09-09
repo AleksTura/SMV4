@@ -1,18 +1,57 @@
+<php>
+
+</php>
+
 <html>
     <head>
         <title>Registracija</title>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="izgled.css">
+        <metadata authour="Špela Zeme">
     </head>
     <body>
         <h1>Registracija</h1>
-        <label for="ime">Ime</label>
-        <input type="text" id="ime" placeholder="Janez">
-        <label for="Priimek">Priimek</label>
-        <input type="text" id="Priimek" placeholder="Novak">
-        <label for="Naziv">Učitelj / Dijak</label>
-        <input type="checkbox" placeholder="checked">
-        <input type="checkbox">
-        <input type="button">
+        <form>
+            <label for="ime">Ime</label>
+                <input type="text" id="ime" placeholder="Janez"><br>
+            <label for="Priimek">Priimek</label>
+                <input type="text" id="Priimek" placeholder="Novak"><br>
+            <label for="Naziv">Izberi naziv</label><br>
+                    <input type="radio" id="Učitelj" name="Naziv" value="Učitelj">
+                <label for="Učitelj">Učitelj</label><br>
+                    <input type="radio" id="Dijak" name="Naziv" value="Dijak" checked>
+                <label for="Dijak">Dijak</label><br>
+            <div id="letnik-container">
+                <label for="Letnik">Letnik</label>
+                    <input type="text" id="Letnik"><br>
+            </div>
+            <label for="geslo1">Geslo</label><br>
+                <input type="text" id="Geslo1"><br>
+            <label for="geslo2">Potrdi geslo</label><br>
+                <input type="text" id="Geslo2"><br>
+            <input type="button">
+        </form>
     </body>
 </html>
+<script>
+
+
+    // Pripni event listenerje na radio gumbe
+    document.getElementById('Dijak').addEventListener('change', toggleLetnik);
+    document.getElementById('Učitelj').addEventListener('change', toggleLetnik);
+
+    // Pokliči funkcijo ob nalaganju strani, da nastavi pravilno stanje
+    window.onload = toggleLetnik;
+    
+        // Funkcija, ki pokaže/skrije letnik glede na izbran radio gumb
+        function toggleLetnik() {
+        const dijakRadio = document.getElementById('Dijak');
+        const letnikContainer = document.getElementById('letnik-container');
+
+        if (dijakRadio.checked) {
+            letnikContainer.style.display = 'block';
+        } else {
+            letnikContainer.style.display = 'none';
+        }
+    }
+</script>
