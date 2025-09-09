@@ -10,7 +10,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 10px;
-    height: 450px;
     width: 350px;
     display: grid;
   place-items: center;
