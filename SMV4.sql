@@ -1,8 +1,8 @@
-CREATE DATABASE SMV4 
+-- CREATE DATABASE SMV4 
 GO 
 
-CREATE TABLE Uèitelj (
-    Id_uèitelja INT PRIMARY KEY,
+CREATE TABLE Uï¿½itelj (
+    Id_uï¿½itelja INT PRIMARY KEY,
     Ime VARCHAR(50),
     Priimek VARCHAR(50),
     Geslo VARCHAR(255)
@@ -13,19 +13,19 @@ CREATE TABLE Predmet (
     Ime_predmeta VARCHAR(100)
 );
 
-CREATE TABLE Uèenec (
+CREATE TABLE Uï¿½enec (
     Id_dijaka INT PRIMARY KEY,
     Ime VARCHAR(50),
     Priimek VARCHAR(50),
     Letnik INT,
-    Oš_šola VARCHAR(100)
+    Oï¿½_ï¿½ola VARCHAR(100)
 );
 
-CREATE TABLE Uèi_predmet (
-    Id_uèitelja INT,
+CREATE TABLE Uï¿½i_predmet (
+    Id_uï¿½itelja INT,
     Id_predmeta INT,
-    PRIMARY KEY (Id_uèitelja, Id_predmeta),
-    FOREIGN KEY (Id_uèitelja) REFERENCES Uèitelj(Id_uèitelja),
+    PRIMARY KEY (Id_uï¿½itelja, Id_predmeta),
+    FOREIGN KEY (Id_uï¿½itelja) REFERENCES Uï¿½itelj(Id_uï¿½itelja),
     FOREIGN KEY (Id_predmeta) REFERENCES Predmet(Id_predmeta)
 );
 
@@ -33,7 +33,7 @@ CREATE TABLE Dij_predmet (
     Id_dijaka INT,
     Id_predmeta INT,
     PRIMARY KEY (Id_dijaka, Id_predmeta),
-    FOREIGN KEY (Id_dijaka) REFERENCES Uèenec(Id_dijaka),
+    FOREIGN KEY (Id_dijaka) REFERENCES Uï¿½enec(Id_dijaka),
     FOREIGN KEY (Id_predmeta) REFERENCES Predmet(Id_predmeta)
-);
+); -->
 
