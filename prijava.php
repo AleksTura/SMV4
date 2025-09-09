@@ -1,3 +1,4 @@
+<html>
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="izgled.css">
@@ -15,11 +16,12 @@
             <label>Geslo</label><br>
             <input type="text" placeholder="Geslo"><br>
         </div>
+
+        <input type="button" value="Prijava"><br>
         <a href="#">Pozabljeno geslo?</a>
-        <input class="PrijavaButton" type="button" value="Prijava"><br>
-        
     </div>
 </body>
 <foot>
 
 </foot>
+</html>
