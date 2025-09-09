@@ -1,8 +1,8 @@
--- CREATE DATABASE SMV4 
+CREATE DATABASE SMV4 
 GO 
 
-CREATE TABLE U�itelj (
-    Id_u�itelja INT PRIMARY KEY,
+CREATE TABLE Ucitelj (
+    Id_ucitelja INT PRIMARY KEY,
     Ime VARCHAR(50),
     Priimek VARCHAR(50),
     Geslo VARCHAR(255)
@@ -13,19 +13,19 @@ CREATE TABLE Predmet (
     Ime_predmeta VARCHAR(100)
 );
 
-CREATE TABLE U�enec (
+CREATE TABLE Ucenec (
     Id_dijaka INT PRIMARY KEY,
     Ime VARCHAR(50),
     Priimek VARCHAR(50),
     Letnik INT,
-    O�_�ola VARCHAR(100)
+    Geslo VARCHAR(100)
 );
 
-CREATE TABLE U�i_predmet (
-    Id_u�itelja INT,
+CREATE TABLE Uci_predmet (
+    Id_ucitelja INT,
     Id_predmeta INT,
-    PRIMARY KEY (Id_u�itelja, Id_predmeta),
-    FOREIGN KEY (Id_u�itelja) REFERENCES U�itelj(Id_u�itelja),
+    PRIMARY KEY (Id_ucitelja, Id_predmeta),
+    FOREIGN KEY (Id_ucitelja) REFERENCES Ucitelj(Id_ucitelja),
     FOREIGN KEY (Id_predmeta) REFERENCES Predmet(Id_predmeta)
 );
 
@@ -33,7 +33,7 @@ CREATE TABLE Dij_predmet (
     Id_dijaka INT,
     Id_predmeta INT,
     PRIMARY KEY (Id_dijaka, Id_predmeta),
-    FOREIGN KEY (Id_dijaka) REFERENCES U�enec(Id_dijaka),
+    FOREIGN KEY (Id_dijaka) REFERENCES Ucenec(Id_dijaka),
     FOREIGN KEY (Id_predmeta) REFERENCES Predmet(Id_predmeta)
-); -->
+); 
 
