@@ -1,0 +1,29 @@
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="izgled.css">
+    <title>Naloga</title>
+</head>
+<body>
+    <h1>Ime predmeta iz PB</h1><br>
+    <p>Opis naloge - more bit dinamicn ker neves kok besedila bo notr ko bo neka naloga dodana</p><br>
+    <div class="DropFile" id="DropFile">
+        plac za oddajo naloge- drag and drop za datoteke
+    </div>
+    <div class ="DroppedFile" style="display: none" id="DroppedFile">ZE ODDANA NALOGA</div>
+    <button onclick="hide()">ODDAJ</button>
+</body>
+
+<script>
+    var DroppedFile = document.getElementById('DroppedFile');
+    var DropFileBox = document.getElementById('DropFile');
+    function hide() {
+    if(DroppedFile.style.display == "none"){
+        DropFileBox.style.display = 'none';
+        DroppedFile.style.display = 'block';
+    }
+    else{
+        DropFileBox.style.display = 'flex';
+        DroppedFile.style.display = 'none';
+    }
+}
+</script>
