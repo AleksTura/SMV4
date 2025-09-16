@@ -2,6 +2,8 @@
     font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
 }
 
+/* REGISTRACIJA IN PRIJAVA ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
 .VpisBox{
 
     border-radius: 40px;
@@ -33,4 +35,30 @@ input[type=radio]{
     background-color: rgb(78, 104, 250);
     color: aliceblue;
     border: none;
+}
+
+/* PRVA STRAN ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+body{
+    margin: 0;
+    padding: 0;
+}
+.top-bar {
+    height: 50px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; 
+    background-color: rgba(80, 100, 190, 0.726);
+    padding: 15px;
+    margin: 0;
+}
+i.fa{
+    font-size: 40px;
+    margin-right: 20px;
+}
+a{
+    color: black;
+}
+a::after{
+    color:blue;
 }
