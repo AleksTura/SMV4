@@ -40,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $hashedPassword = password_hash($geslo1, PASSWORD_DEFAULT);
 
     // TO DO: Save user data to database here (e.g., MySQL)
-    // For now, just display the submitted info (excluding password)
+    // TO DO: Open new site based on user
 
 } else {
     // If form not submitted, redirect or show message

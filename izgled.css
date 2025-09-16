@@ -2,6 +2,8 @@
     font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
 }
 
+/* REGISTRACIJA IN PRIJAVA ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
 .VpisBox{
 
     border-radius: 40px;
@@ -35,14 +37,42 @@ input[type=radio]{
     color: aliceblue;
     border: none;
 }
+
 /*------------------------Naloga--------------------------------------------------*/
-.DropFile{
+.DropFile {
     display: flex;
-    border: 3px;
-    border-style: dashed;
-    width: 600px;
-    height: 250px;
     justify-content: center;
     align-items: center;
     border-color: rgb(81, 91, 235);
+    /* other styling for DropFile */
+}
+
+/* PRVA STRAN ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.top-bar {
+    height: 50px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; 
+    background-color: rgba(80, 100, 190, 0.726);
+    padding: 15px;
+    margin: 0;
+}
+
+i.fa {
+    font-size: 40px;
+    margin-right: 20px;
+}
+
+a {
+    color: black;
+}
+
+a::after {
+    color: blue;
 }
