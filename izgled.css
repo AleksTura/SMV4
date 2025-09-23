@@ -41,12 +41,29 @@ input[type=radio]{
 /*------------------------Naloga--------------------------------------------------*/
 .DropFile {
     display: flex;
+    border: 3px;
+    border-style: dashed;
+    width: 600px;
+    height: 250px;
     justify-content: center;
     align-items: center;
     border-color: rgb(81, 91, 235);
-    /* other styling for DropFile */
 }
 
+.nalogadiv{
+    margin:50px;
+    padding: 20px;
+    border-style: solid;
+    border-color: rgb(170, 170, 170);
+    border-width: 2px;
+}
+
+.nalogadiv button{
+    margin:10px;
+    position: relative;
+    left: 250px;
+    
+}
 /* PRVA STRAN ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 body {
     margin: 0;
