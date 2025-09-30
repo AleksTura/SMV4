@@ -39,31 +39,62 @@ input[type=radio]{
 }
 
 /*------------------------Naloga--------------------------------------------------*/
+.nalogadiv {
+    margin: 20px 0;
+    padding: 25px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 .DropFile {
     display: flex;
-    border: 3px;
-    border-style: dashed;
-    width: 600px;
+    border: 3px dashed #0d6efd;
+    width: 100%;
+    max-width: 600px;
     height: 250px;
     justify-content: center;
     align-items: center;
-    border-color: rgb(81, 91, 235);
+    border-radius: 8px;
+    background-color: rgba(13, 110, 253, 0.05);
+    margin: 20px 0;
+    transition: all 0.3s;
 }
 
-.nalogadiv{
-    margin:50px;
+.DropFile:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.DroppedFile {
+    display: none;
+    border: 2px solid #198754;
     padding: 20px;
-    border-style: solid;
-    border-color: rgb(170, 170, 170);
-    border-width: 2px;
+    border-radius: 8px;
+    background-color: rgba(25, 135, 84, 0.05);
+    margin: 20px 0;
+    text-align: center;
+    font-weight: bold;
+    color: #198754;
 }
 
-.nalogadiv button{
-    margin:10px;
-    position: relative;
-    left: 250px;
-    
+h1 {
+    color: #0d6efd;
+    margin-bottom: 20px;
 }
+
+h3 {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+#OddajButton {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 30px;
+    font-weight: bold;
+}
+
 /* PRVA STRAN ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 body {
     margin: 0;
