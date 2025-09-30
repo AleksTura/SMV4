@@ -1,0 +1,24 @@
+Setting Up a PHP Website with Docker:
+To get started, you’ll need Docker installed on your system. Once Docker is set up, follow these steps to create a PHP website using Docker containers:
+
+➤ Create a directory for your project and navigate into it.
+
+➤ Create a file named Dockerfile in the project directory. This file will contain instructions for building the Docker image for your PHP website. Here’s a basic example of a Dockerfile for a PHP website:
+
+# Use the official PHP image as the base image
+FROM php:7.4-apache
+
+# Copy the PHP files into the container
+COPY src/ /var/www/html/
+
+# Expose port 80
+EXPOSE 80
+➤ Create a directory named src inside your project directory and place your PHP files inside it.
+
+➤ Build the Docker image using the following command:
+
+docker build -t php-website .
+➤ Once the image is built, you can run a container using the following command:
+
+docker run -d -p 8080:80 --name php-container php-website
+This command will start a container named php-container based on the php-website image and map port 8080 on the host to port 80 on the container.
