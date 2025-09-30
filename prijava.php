@@ -6,7 +6,7 @@
     <title>Prijava</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="compact-form">
     <div class="floating-elements" id="floatingElements"></div>
     
     <div class="glass-card">
@@ -30,8 +30,10 @@
                     <i class="fas fa-sign-in-alt me-2"></i>Prijava
                 </button>
                 
-                <a href="#" class="link">Pozabljeno geslo?</a>
-                <a href="registracija.php" class="link">Še nimaš računa? Registriraj se</a>
+                <div class="links-container">
+                    <a href="#" class="link">Pozabljeno geslo?</a>
+                    <a href="registracija.php" class="link">Še nimaš računa? Registriraj se</a>
+                </div>
             </form>
         </div>
     </div>
@@ -69,3 +71,4 @@
     </script>
 </body>
 </html>
+
