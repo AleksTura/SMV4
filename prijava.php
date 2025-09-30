@@ -17,7 +17,7 @@
             <input type="text" placeholder="Geslo"><br>
         </div>
 
-        <input type="button" value="Prijava"><br>
+        <input class="PrijavaButton" type="button" value="Prijava"><br>
         <a href="#">Pozabljeno geslo?</a>
     </div>
 </body>

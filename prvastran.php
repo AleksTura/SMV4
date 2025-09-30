@@ -1,9 +1,10 @@
 <?php
+session_start();
 // Database connection
 $servername = "localhost"; // or your DB host
 $username = "root";        // your DB username
 $password = "";            // your DB password
-$dbname = "my_database";   // your database name
+$dbname = "smv4";   // your database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -15,10 +16,12 @@ if ($conn->connect_error) {
 
 // Fetch users from the database
 $sql = "SELECT Ime_predmeta 
-        FROM Uci_predmet";
+        FROM Uci_predmet JOIN predmet
+        ON Id_predmeta = Id_predmeta";
 $result = $conn->query($sql);
 
 ?>
+
 <html>
     <head>
         <title>Spletna učilnica</title>

@@ -38,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo "<p><a href='javascript:history.back()'>Nazaj na obrazec</a></p>";
         exit; // Preprečimo nadaljevanje izvedbe kode
     }
-/*
+
     // Shranjevanje gesla in drugih podatkov v bazo
     $hashedPassword = password_hash($geslo1, PASSWORD_DEFAULT);
 
@@ -48,7 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $servername = "localhost"; // Tvoj DB gostitelj
     $username = "root";        // Tvoje uporabniško ime
     $password = "";            // Tvoje geslo
-    $dbname = "my_database";   // Tvoje ime baze
+    $dbname = "smv4";   // Tvoje ime baze
 
     // Ustvarimo povezavo z bazo
     $conn = new mysqli($servername, $username, $password, $dbname);
@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
 
-    */
+
 
 
     // Po uspešni registraciji preusmeri uporabnika na dobrodošlico ali drugo stran
