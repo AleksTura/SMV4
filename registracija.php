@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $errors[] = "Priimek je obvezen.";
     }
 
-    if ($naziv === 'Dijak' && empty($letnik)) {
+    if ($naziv === 'dijak' && empty($letnik)) {
         $errors[] = "Letnik je obvezen za dijake.";
     }
     if (empty($geslo1) || empty($geslo2)) {
@@ -33,9 +33,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Če so napake, jih izpišemo
     if (!empty($errors)) {
         foreach ($errors as $error) {
-            echo "<p style='color:red;'>$error</p>";
+            echo "<div class='error'>$error</div>";
         }
-        echo "<p><a href='javascript:history.back()'>Nazaj na obrazec</a></p>";
+        echo "<p><a href='javascript:history.back()' class='link'>Nazaj na obrazec</a></p>";
         exit; // Preprečimo nadaljevanje izvedbe kode
     }
 
@@ -59,31 +59,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Dodajanje podatkov v bazo (učitelj/dijak)
-        if ($naziv === "Učitelj") {
-            $sql = "INSERT INTO Ucitelj (ime, priimek, geslo) VALUES ('$ime', '$priimek', '$hashedPassword')";
-            $conn->query($sql);
+    if ($naziv === "učitelj") {
+        $sql = "INSERT INTO Ucitelj (ime, priimek, geslo) VALUES ('$ime', '$priimek', '$hashedPassword')";
+        $conn->query($sql);
 
-            // Po vnosu, pridobimo ID učitelja
-            $sql = "SELECT Id_ucitelja FROM Ucitelj WHERE ime = '$ime' AND geslo = '$hashedPassword' LIMIT 1"; 
-            $result = $conn->query($sql);
-            if ($result && $row = $result->fetch_assoc()) {
-                $_SESSION["UserId"] = $row['Id_ucitelja'];  // Shranimo ID v sejo
-            }
-        } 
-        else if ($naziv === "Dijak") {
-            $sql = "INSERT INTO Ucenec (ime, priimek, letnik, geslo) VALUES ('$ime', '$priimek', '$letnik', '$hashedPassword')";
-            $conn->query($sql);
-
-            // Po vnosu, pridobimo ID dijaka
-            $sql = "SELECT Id_dijaka FROM Ucenec WHERE ime = '$ime' AND geslo = '$hashedPassword' LIMIT 1"; 
-            $result = $conn->query($sql);
-            if ($result && $row = $result->fetch_assoc()) {
-                $_SESSION["UserId"] = $row['Id_dijaka'];  // Shranimo ID v sejo
-            }
+        // Po vnosu, pridobimo ID učitelja
+        $sql = "SELECT Id_ucitelja FROM Ucitelj WHERE ime = '$ime' AND geslo = '$hashedPassword' LIMIT 1"; 
+        $result = $conn->query($sql);
+        if ($result && $row = $result->fetch_assoc()) {
+            $_SESSION["UserId"] = $row['Id_ucitelja'];  // Shranimo ID v sejo
         }
+    } 
+    else if ($naziv === "dijak") {
+        $sql = "INSERT INTO Ucenec (ime, priimek, letnik, geslo) VALUES ('$ime', '$priimek', '$letnik', '$hashedPassword')";
+        $conn->query($sql);
 
-
-
+        // Po vnosu, pridobimo ID dijaka
+        $sql = "SELECT Id_dijaka FROM Ucenec WHERE ime = '$ime' AND geslo = '$hashedPassword' LIMIT 1"; 
+        $result = $conn->query($sql);
+        if ($result && $row = $result->fetch_assoc()) {
+            $_SESSION["UserId"] = $row['Id_dijaka'];  // Shranimo ID v sejo
+        }
+    }
 
     // Po uspešni registraciji preusmeri uporabnika na dobrodošlico ali drugo stran
     header('Location: prijava.php');
@@ -92,61 +89,123 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 } 
 ?>
 
-
-
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>Registracija</title>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="izgled.css">
-        <meta name="author" content="Špela Zeme">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-        <div class="VpisBox">
+<head>
+    <title>Registracija</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="izgled.css">
+    <meta name="author" content="Špela Zeme">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="floating-elements" id="floatingElements"></div>
+    
+    <div class="glass-card">
+        <div class="header-card">
             <h1>Registracija</h1>
+        </div>
+        
+        <div class="VpisBox">
             <form action="registracija.php" method="POST">
-                <label for="ime">Ime</label><br>
-                <input type="text" name="ime" id="ime" placeholder="Janez"><br>
-                <label for="priimek">Priimek</label><br>
-                <input type="text" name="priimek" id="priimek" placeholder="Novak"><br>
-                <label for="naziv">Izberi naziv</label><br>
-                <input type="radio" name="naziv" id="učitelj" value="učitelj">
-                <label for="učitelj">Učitelj</label>
-                <input type="radio" name="naziv" id="dijak" value="dijak" checked>
-                <label for="dijak">Dijak</label><br>
-                <div id="letnik-container">
-                    <label for="letnik">Letnik</label><br>
-                    <input type="text" name="letnik" id="letnik" placeholder="R3B"><br>
+                <div class="form-group">
+                    <label for="ime">Ime</label>
+                    <input type="text" name="ime" id="ime" class="form-control" placeholder="Janez" required>
                 </div>
-                <label for="geslo1">Geslo</label><br>
-                <input type="password" name="geslo1" id="geslo1" placeholder="************"><br>
-                <label for="geslo2">Potrdi geslo</label><br>
-                <input type="password" name="geslo2" id="geslo2" placeholder="************"><br>
-                <input type="submit" class="PrijavaButton" value="Registriraj se">
+                
+                <div class="form-group">
+                    <label for="priimek">Priimek</label>
+                    <input type="text" name="priimek" id="priimek" class="form-control" placeholder="Novak" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Izberi naziv</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" name="naziv" id="učitelj" value="učitelj">
+                            <label for="učitelj">Učitelj</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" name="naziv" id="dijak" value="dijak" checked>
+                            <label for="dijak">Dijak</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="letnik-container">
+                    <label for="letnik">Letnik</label>
+                    <input type="text" name="letnik" id="letnik" class="form-control" placeholder="R3B">
+                </div>
+                
+                <div class="form-group">
+                    <label for="geslo1">Geslo</label>
+                    <input type="password" name="geslo1" id="geslo1" class="form-control" placeholder="************" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="geslo2">Potrdi geslo</label>
+                    <input type="password" name="geslo2" id="geslo2" class="form-control" placeholder="************" required>
+                </div>
+                
+                <button type="submit" class="btn">
+                    <i class="fas fa-user-plus me-2"></i>Registriraj se
+                </button>
+                
+                <a href="prijava.php" class="link">Že imaš račun? Prijavi se</a>
             </form>
         </div>
-    </body>
-</html>
+    </div>
 
-
-<script>
-    document.getElementById('dijak').addEventListener('change', toggleLetnik);
-    document.getElementById('učitelj').addEventListener('change', toggleLetnik);
-
-    // Pokliči funkcijo ob nalaganju strani, da nastavi pravilno stanje
-    window.onload = toggleLetnik;
-
-    // Funkcija, ki pokaže/skrije letnik glede na izbran radio gumb
-    function toggleLetnik() {
-        const dijakRadio = document.getElementById('dijak');
-        const letnikContainer = document.getElementById('letnik-container');
-
-        if (dijakRadio.checked) {
-            letnikContainer.style.display = 'block';
-        } else {
-            letnikContainer.style.display = 'none';
+    <script>
+        // Create floating elements
+        function createFloatingElements() {
+            const container = document.getElementById('floatingElements');
+            const colors = ['rgba(106, 17, 203, 0.3)', 'rgba(37, 117, 252, 0.3)', 'rgba(255, 255, 255, 0.2)'];
+            
+            for (let i = 0; i < 15; i++) {
+                const element = document.createElement('div');
+                element.classList.add('floating-element');
+                
+                // Random properties
+                const size = Math.random() * 60 + 20;
+                const left = Math.random() * 100;
+                const animationDuration = Math.random() * 30 + 20;
+                const animationDelay = Math.random() * 5;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                element.style.width = `${size}px`;
+                element.style.height = `${size}px`;
+                element.style.left = `${left}%`;
+                element.style.animationDuration = `${animationDuration}s`;
+                element.style.animationDelay = `${animationDelay}s`;
+                element.style.background = color;
+                
+                container.appendChild(element);
+            }
         }
-    }
-</script>
+        
+        // Toggle letnik field based on role selection
+        document.getElementById('dijak').addEventListener('change', toggleLetnik);
+        document.getElementById('učitelj').addEventListener('change', toggleLetnik);
+        
+        function toggleLetnik() {
+            const dijakRadio = document.getElementById('dijak');
+            const letnikContainer = document.getElementById('letnik-container');
+            
+            if (dijakRadio.checked) {
+                letnikContainer.style.display = 'block';
+            } else {
+                letnikContainer.style.display = 'none';
+            }
+        }
+        
+        // Initialize on page load
+        window.onload = function() {
+            createFloatingElements();
+            toggleLetnik();
+        };
+    </script>
+</body>
+</html>
 
