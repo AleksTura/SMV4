@@ -1,10 +1,17 @@
 <?php
 session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: prijava.php');
+    exit;
+}
+
 // Database connection
-$servername = "localhost"; // or your DB host
-$username = "root";        // your DB username
-$password = "";            // your DB password
-$dbname = "smv4";   // your database name
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "smv4";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -14,10 +21,46 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch subjects from the database
-$sql = "SELECT Ime_predmeta FROM predmet";
-$result = $conn->query($sql);
+// Get user info from session
+$user_id = $_SESSION['user_id'];
+$user_type = $_SESSION['user_type'];
 
+// Fetch subjects based on user type
+if ($user_type == 'ucenec') {
+    // For students - get subjects they are enrolled in
+    $sql = "SELECT p.Id_predmeta, p.Ime_predmeta, up.snov 
+            FROM Predmet p 
+            INNER JOIN Dij_predmet dp ON p.Id_predmeta = dp.Id_predmeta 
+            INNER JOIN Uci_predmet up ON dp.Id_ucitelja = up.Id_ucitelja AND dp.Id_predmeta = up.Id_predmeta
+            WHERE dp.Id_dijaka = ? 
+            ORDER BY p.Ime_predmeta";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+} elseif ($user_type == 'ucitelj') {
+    // For teachers - get subjects they teach
+    $sql = "SELECT p.Id_predmeta, p.Ime_predmeta, up.snov 
+            FROM Predmet p 
+            INNER JOIN Uci_predmet up ON p.Id_predmeta = up.Id_predmeta 
+            WHERE up.Id_ucitelja = ? 
+            ORDER BY p.Ime_predmeta";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+} else {
+    die("Invalid user type");
+}
+
+// Handle subject click - store subject ID in session and redirect
+if (isset($_POST['subject_id'])) {
+    $_SESSION['subject_id'] = $_POST['subject_id'];
+    header('Location: predmet.php');
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -36,9 +79,12 @@ $result = $conn->query($sql);
     
     <div class="top-bar">
         <h1>Spletna učilnica</h1>
-        <a href="profil.php" class="user-icon">
-            <i class="fas fa-user"></i>
-        </a>
+        <div class="user-info">
+            <span class="welcome-text">Pozdravljen, <?php echo htmlspecialchars($_SESSION['username'] ?? 'Uporabnik'); ?></span>
+            <a href="profil.php" class="user-icon">
+                <i class="fas fa-user"></i>
+            </a>
+        </div>
     </div>
     
     <div class="list-container">
@@ -50,15 +96,42 @@ $result = $conn->query($sql);
                 // Output each row of data
                 while($row = $result->fetch_assoc()) {
                     echo "<li class='subject-item'>";
+                    echo "<form method='POST' action=''>";
+                    echo "<input type='hidden' name='subject_id' value='" . $row['Id_predmeta'] . "'>";
+                    echo "<button type='submit' class='subject-link'>";
                     echo "<i class='fas fa-book subject-icon'></i>";
-                    echo "<span>" . htmlspecialchars($row['Ime_predmeta']) . "</span>";
+                    echo "<span class='subject-name'>" . htmlspecialchars($row['Ime_predmeta']) . "</span>";
+                    if (!empty($row['snov'])) {
+                        echo "<span class='subject-topic'>(" . htmlspecialchars($row['snov']) . ")</span>";
+                    }
+                    echo "</button>";
+                    echo "</form>";
                     echo "</li>";
                 }
             } else {
-                echo "<li class='subject-item'>No subjects found.</li>";
+                echo "<li class='subject-item'>";
+                echo "<div class='subject-link'>";
+                echo "<i class='fas fa-exclamation-circle subject-icon'></i>";
+                echo "<span class='subject-name'>";
+                if ($user_type == 'ucenec') {
+                    echo "Niste vpisani na noben predmet.";
+                } else {
+                    echo "Nimate dodeljenih predmetov.";
+                }
+                echo "</span>";
+                echo "</div>";
+                echo "</li>";
             }
             ?>
         </ul>
+        
+        <?php if ($user_type == 'ucitelj'): ?>
+        <div class="teacher-actions">
+            <a href="dodaj_predmet.php" class="add-subject-btn">
+                <i class="fas fa-plus"></i> Dodaj nov predmet
+            </a>
+        </div>
+        <?php endif; ?>
     </div>
 
     <script>

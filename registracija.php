@@ -67,6 +67,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $errors[] = "Uporabnik s tem imenom in priimkom že obstaja, vendar z drugim geslom";
         }
     }
+    else {$sql = "SELECT Id_ucitelja, geslo FROM Ucitelj WHERE ime = ? AND priimek = ? LIMIT 1"; 
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $ime, $priimek);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        // 2. Če uporabnik obstaja, preveri geslo
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $storedHash = $row['geslo'];
+            
+            // 3. Preveri, če se geslo ujema z obstoječim hashom
+            if (password_verify($geslo1, $storedHash)) {
+                $errors[] = "Uporabnik s tem imenom, priimkom in geslom že obstaja";
+            } else {
+                $errors[] = "Uporabnik s tem imenom in priimkom že obstaja, vendar z drugim geslom";
+            }
+        }
+    }
     // Če so napake, jih izpišemo
 
     // V delu, kjer obdelujete napake, namesto shranjevanja v sejo:
@@ -177,7 +196,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
                 
                 <button type="submit" class="btn">
-                    <i class="fas fa-user-plus me-2"></i>Registriraj se
+                    <i class="fas fa-user-plus me-2"></i>  Registriraj se
                 </button>
                 
                 <a href="prijava.php" class="link">Že imaš račun? Prijavi se</a>

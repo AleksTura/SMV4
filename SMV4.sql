@@ -17,7 +17,7 @@ CREATE TABLE Ucenec (
     Id_dijaka int PRIMARY KEY AUTO_INCREMENT,
     Ime varchar(50),
     Priimek varchar(50),
-    Letnik int,
+    Letnik varchar(3),
     Geslo varchar(100)
 );
 
