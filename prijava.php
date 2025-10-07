@@ -11,29 +11,77 @@ if ($conn->connect_error) {
     die("Povezava z bazo ni uspela: " . $conn->connect_error);
 }
 
+$error_message = "";
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $username_input = $_POST['username'] ?? '';
+    $password_input = $_POST['password'] ?? '';
 
     $errors = [];
-    if (empty($username) && empty($password)){
+    
+    // Validation
+    if (empty($username_input)) {
         $errors[] = "Polje za uporabniško ime mora biti izpolnjeno";
     }
-    if (empty($password) && !empty($username)){
+    if (empty($password_input)) {
         $errors[] = "Polje za geslo mora biti izpolnjeno";
     }
 
     if (!empty($errors)) {
-        foreach ($errors as $error) {
-            echo "<div class='error'>$error</div>";
+        $error_message = implode("\\n", $errors);
+    } else {
+        // Parse username (format: "name surname")
+        $nameParts = explode(' ', trim($username_input), 2);
+        $ime = $nameParts[0] ?? '';
+        $priimek = $nameParts[1] ?? '';
+
+        if (empty($priimek)) {
+            $error_message = "Vnesite polno ime in priimek (npr: Janez Novak)";
+        } else {
+            // Prepare SQL statement
+            $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
+            $stmt = $conn->prepare($sql);
+            
+            if (!$stmt) {
+                die("Napaka pri pripravi poizvedbe: " . $conn->error);
+            }
+            
+            $stmt->bind_param("ss", $ime, $priimek);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows === 1) {
+                $row = $result->fetch_assoc();
+                $storedHash = $row['geslo'];
+                
+                // Verify password
+                if (password_verify($password_input, $storedHash)) {
+                    // Set session variables
+                    if ($result && $row = $result->fetch_assoc()) {
+                        $_SESSION["UserId"] = $row['Id_dijaka'];  // Shranimo ID v sejo
+                    }
+                    $_SESSION['user_name'] = $ime . ' ' . $priimek;
+                    $_SESSION['logged_in'] = true;
+                    
+                    echo "<script>
+                    alert('Prijava uspešna');
+                    window.location.href = 'prvastran.php';
+                    </script>";
+                    exit;
+                } else {
+                    $error_message = "Napačno geslo";
+                }
+            } else {
+                $error_message = "Uporabnik s tem imenom in priimkom ne obstaja";
+            }
+            
+            $stmt->close();
         }
-        echo "<p><a href='javascript:history.back()' class='link'>Nazaj na obrazec</a></p>";
-        exit; // Preprečimo nadaljevanje izvedbe kode
     }
 }
 
+$conn->close();
 ?>
-
 
 <!DOCTYPE html>
 <html>
@@ -52,15 +100,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
         
         <div class="VpisBox">
-            <form action="prijava.php" method="POST">
+            <form action="prijava.php" method="POST" id="loginForm">
                 <div class="form-group">
-                    <label for="username">Uporabniško ime</label>
-                    <input type="text" id="username" name="username" class="form-control" placeholder="Uporabniško ime" >
+                    <label for="username">Ime in priimek</label>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="Vnesite ime in priimek" value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>" required>
+                    <small style="color: #666; font-size: 12px;">Vnesite ime in priimek (npr: Janez Novak)</small>
                 </div>
                
                 <div class="form-group">
                     <label for="password">Geslo</label>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="Geslo" >
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Geslo" required>
                 </div>
 
                 <button type="submit" class="btn">
@@ -74,6 +123,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <script>
+        // Show error popup if there's an error message
+        <?php if (!empty($error_message)): ?>
+        alert("Napaka pri prijavi:\n<?php echo $error_message; ?>");
+        <?php endif; ?>
+
         // Create floating elements
         function createFloatingElements() {
             const container = document.getElementById('floatingElements');
