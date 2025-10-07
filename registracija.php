@@ -125,7 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    $uporabniškoIme = "$ime$priimek";
+    $uporabniškoIme = ucfirst(strtolower($ime)).ucfirst(strtolower($priimek));
 
     // Po uspešni registraciji preusmeri uporabnika na dobrodošlico ali drugo stran
     // Po uspešni registraciji pokažemo alert in preusmerimo na prijavo

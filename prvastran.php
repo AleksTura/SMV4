@@ -22,7 +22,7 @@ if ($conn->connect_error) {
 }
 
 // Get user info from session
-$user_id = $_SESSION['user_id'];
+$user_id = $_SESSION['UserId'];
 $user_type = $_SESSION['user_type'];
 
 // Fetch subjects based on user type
