@@ -54,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("ss", $ime, $priimek);
     $stmt->execute();
     $result = $stmt->get_result();
-
+    
     // 2. Če uporabnik obstaja, preveri geslo
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
@@ -67,6 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $errors[] = "Uporabnik s tem imenom in priimkom že obstaja, vendar z drugim geslom";
         }
     }
+
     else {$sql = "SELECT Id_ucitelja, geslo FROM Ucitelj WHERE ime = ? AND priimek = ? LIMIT 1"; 
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ss", $ime, $priimek);
@@ -87,6 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     // Če so napake, jih izpišemo
+
 
     // V delu, kjer obdelujete napake, namesto shranjevanja v sejo:
     if (!empty($errors)) {
