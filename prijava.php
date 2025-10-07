@@ -24,8 +24,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (!empty($errors)) {
-        echo "<script>alert('" . addslashes(implode(" ", $errors)) . "'); window.history.back();</script>";
-        exit;
+        foreach ($errors as $error) {
+            echo "<div class='error'>$error</div>";
+        }
+        echo "<p><a href='javascript:history.back()' class='link'>Nazaj na obrazec</a></p>";
+        exit; // Preprečimo nadaljevanje izvedbe kode
     }
 }
 
