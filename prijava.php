@@ -1,3 +1,40 @@
+<?php
+session_start();
+$servername = "localhost"; 
+$username = "root";       
+$password = "";           
+$dbname = "smv4";   
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("Povezava z bazo ni uspela: " . $conn->connect_error);
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    $errors = [];
+    if (empty($username) && empty($password)){
+        $errors[] = "Polje za uporabniško ime mora biti izpolnjeno";
+    }
+    if (empty($password) && !empty($username)){
+        $errors[] = "Polje za geslo mora biti izpolnjeno";
+    }
+
+    if (!empty($errors)) {
+        foreach ($errors as $error) {
+            echo "<div class='error'>$error</div>";
+        }
+        echo "<p><a href='javascript:history.back()' class='link'>Nazaj na obrazec</a></p>";
+        exit; // Preprečimo nadaljevanje izvedbe kode
+    }
+}
+
+?>
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -18,12 +55,12 @@
             <form action="prijava.php" method="POST">
                 <div class="form-group">
                     <label for="username">Uporabniško ime</label>
-                    <input type="text" id="username" name="username" class="form-control" placeholder="Uporabniško ime" required>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="Uporabniško ime" >
                 </div>
                
                 <div class="form-group">
                     <label for="password">Geslo</label>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="Geslo" required>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Geslo" >
                 </div>
 
                 <button type="submit" class="btn">
