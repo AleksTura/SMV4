@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Prijava</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="compact-form">
+<body>
     <div class="floating-elements" id="floatingElements"></div>
     
     <div class="glass-card">
@@ -67,10 +67,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <i class="fas fa-sign-in-alt me-2"></i>Prijava
                 </button>
                 
-                <div class="links-container">
-                    <a href="#" class="link">Pozabljeno geslo?</a>
-                    <a href="registracija.php" class="link">Še nimaš računa? Registriraj se</a>
-                </div>
+                <a href="#" class="link">Pozabljeno geslo?</a>
+                <a href="registracija.php" class="link">Še nimaš računa? Registriraj se</a>
             </form>
         </div>
     </div>
@@ -108,4 +106,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
 </body>
 </html>
-

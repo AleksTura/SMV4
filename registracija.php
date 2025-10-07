@@ -1,6 +1,20 @@
 <?php
 session_start();
 
+    // Povezava z bazo
+    $servername = "localhost"; // Tvoj DB gostitelj
+    $username = "root";        // Tvoje uporabniško ime
+    $password = "";            // Tvoje geslo
+    $dbname = "smv4";   // Tvoje ime baze
+
+    // Ustvarimo povezavo z bazo
+    $conn = new mysqli($servername, $username, $password, $dbname);
+
+    // Preverimo povezavo
+    if ($conn->connect_error) {
+        die("Povezava z bazo ni uspela: " . $conn->connect_error);
+    }
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Zberemo podatke iz obrazca
     $ime = trim($_POST['ime'] ?? '');
@@ -30,33 +44,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $errors[] = "Gesli se ne ujemata.";
     }
 
-    // Če so napake, jih izpišemo
-    if (!empty($errors)) {
-        foreach ($errors as $error) {
-            echo "<div class='error'>$error</div>";
-        }
-        echo "<p><a href='javascript:history.back()' class='link'>Nazaj na obrazec</a></p>";
-        exit; // Preprečimo nadaljevanje izvedbe kode
-    }
 
     // Shranjevanje gesla in drugih podatkov v bazo
     $hashedPassword = password_hash($geslo1, PASSWORD_DEFAULT);
 
-    // TO DO: Shrani podatke v bazo tukaj (MySQL)
+    // 1. Najprej poišči uporabnika po imenu/priimku
+    $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $ime, $priimek);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    // Povezava z bazo
-    $servername = "localhost"; // Tvoj DB gostitelj
-    $username = "root";        // Tvoje uporabniško ime
-    $password = "";            // Tvoje geslo
-    $dbname = "smv4";   // Tvoje ime baze
-
-    // Ustvarimo povezavo z bazo
-    $conn = new mysqli($servername, $username, $password, $dbname);
-
-    // Preverimo povezavo
-    if ($conn->connect_error) {
-        die("Povezava z bazo ni uspela: " . $conn->connect_error);
+    // 2. Če uporabnik obstaja, preveri geslo
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $storedHash = $row['geslo'];
+        
+        // 3. Preveri, če se geslo ujema z obstoječim hashom
+        if (password_verify($geslo1, $storedHash)) {
+            $errors[] = "Uporabnik s tem imenom, priimkom in geslom že obstaja";
+        } else {
+            $errors[] = "Uporabnik s tem imenom in priimkom že obstaja, vendar z drugim geslom";
+        }
     }
+    // Če so napake, jih izpišemo
+
+    // V delu, kjer obdelujete napake, namesto shranjevanja v sejo:
+    if (!empty($errors)) {
+        echo "<script>alert('" . addslashes(implode(" ", $errors)) . "'); window.history.back();</script>";
+        exit;
+    }
+
+
+
+
+
 
     // Dodajanje podatkov v bazo (učitelj/dijak)
     if ($naziv === "učitelj") {
@@ -99,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="compact-form">
+<body>
     <div class="floating-elements" id="floatingElements"></div>
     
     <div class="glass-card">
@@ -208,3 +230,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
 </body>
 </html>
+
