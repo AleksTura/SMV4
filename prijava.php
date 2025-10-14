@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $error_message = "Vnesite polno ime in priimek (npr: Janez Novak)";
         } else {
             // Prepare SQL statement
-            $sql = "SELECT Id_dijaka, geslo, naziv FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
+            $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
             $stmt = $conn->prepare($sql);
             
             if (!$stmt) {
@@ -58,14 +58,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (password_verify($password_input, $storedHash)) {
                     // Set session variables
                     if ($result && $row = $result->fetch_assoc()) {
-                        $_SESSION["UserId"] = $row['Id_dijaka'];  // Shranimo ID v sejo
+                        $_SESSION['user_id'] = $row['Id_dijaka'];  
                     }
                     $_SESSION['type'] = "Dijak";
                     $_SESSION['logged_in'] = true;
                     //nared se za ucitla enako in v type napis ucitelj
                     
+
                     echo "<script>
-                    alert('Prijava uspešna');
+                    alert('Prijava uspešna' + $neki);
                     window.location.href = 'prvastran.php';
                     </script>";
                     exit;

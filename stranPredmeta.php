@@ -1,6 +1,16 @@
 <?php
 session_start();
-require_once 'db_connection.php'; // Include your database connection
+$servername = "localhost"; 
+$username = "root";       
+$password = "";           
+$dbname = "smv4";   
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -22,23 +32,9 @@ if (!$subject_id) {
     die("Subject ID not specified");
 }
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "smv4";
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
 // Get subject name and verify user has access to this subject
 $subject_name = "";
-$materials = [];
+$themes = []; // Changed from $materials to $themes
 
 if ($user_type == 'ucenec') {
     // For students - verify they are enrolled in this subject
@@ -55,16 +51,19 @@ if ($user_type == 'ucenec') {
         $subject_data = $result->fetch_assoc();
         $subject_name = $subject_data['Ime_predmeta'];
         
-        // Note: You need to create a Gradivo table for materials
-        // This is a placeholder - adjust based on your actual materials table
-        $material_sql = "SELECT * FROM Gradivo WHERE Id_predmeta = ? ORDER BY Datum_objave DESC";
-        $material_stmt = $conn->prepare($material_sql);
-        $material_stmt->bind_param("i", $subject_id);
-        $material_stmt->execute();
-        $material_result = $material_stmt->get_result();
+        // Get themes (vsebina) for this subject
+        $theme_sql = "SELECT v.*, up.Id_ucitelja 
+                     FROM Vsebina v 
+                     INNER JOIN Uci_predmet up ON v.Id_ucitelja = up.Id_ucitelja AND v.Id_predmeta = up.Id_predmeta 
+                     WHERE v.Id_predmeta = ? 
+                     ORDER BY v.Id_vsebine";
+        $theme_stmt = $conn->prepare($theme_sql);
+        $theme_stmt->bind_param("i", $subject_id);
+        $theme_stmt->execute();
+        $theme_result = $theme_stmt->get_result();
         
-        while ($row = $material_result->fetch_assoc()) {
-            $materials[] = $row;
+        while ($row = $theme_result->fetch_assoc()) {
+            $themes[] = $row;
         }
     } else {
         die("You don't have access to this subject");
@@ -85,16 +84,18 @@ if ($user_type == 'ucenec') {
         $subject_data = $result->fetch_assoc();
         $subject_name = $subject_data['Ime_predmeta'];
         
-        // Note: You need to create a Gradivo table for materials
-        // This is a placeholder - adjust based on your actual materials table
-        $material_sql = "SELECT * FROM Gradivo WHERE Id_predmeta = ? ORDER BY Datum_objave DESC";
-        $material_stmt = $conn->prepare($material_sql);
-        $material_stmt->bind_param("i", $subject_id);
-        $material_stmt->execute();
-        $material_result = $material_stmt->get_result();
+        // Get themes (vsebina) for this subject taught by this teacher
+        $theme_sql = "SELECT v.* 
+                     FROM Vsebina v 
+                     WHERE v.Id_predmeta = ? AND v.Id_ucitelja = ?
+                     ORDER BY v.Id_vsebine";
+        $theme_stmt = $conn->prepare($theme_sql);
+        $theme_stmt->bind_param("ii", $subject_id, $user_id);
+        $theme_stmt->execute();
+        $theme_result = $theme_stmt->get_result();
         
-        while ($row = $material_result->fetch_assoc()) {
-            $materials[] = $row;
+        while ($row = $theme_result->fetch_assoc()) {
+            $themes[] = $row;
         }
     } else {
         die("You don't teach this subject");
@@ -103,50 +104,30 @@ if ($user_type == 'ucenec') {
     die("Invalid user type");
 }
 
-// Handle file download
-if (isset($_GET['download']) && isset($_GET['material_id'])) {
-    $material_id = $_GET['material_id'];
+// Handle exercises display for a specific theme
+if (isset($_GET['theme_id'])) {
+    $theme_id = $_GET['theme_id'];
     
-    // Verify the material belongs to the subject
-    $verify_sql = "SELECT * FROM Gradivo WHERE Id_gradiva = ? AND Id_predmeta = ?";
+    // Verify the theme belongs to the subject
+    $verify_sql = "SELECT * FROM Vsebina WHERE Id_vsebine = ? AND Id_predmeta = ?";
     $verify_stmt = $conn->prepare($verify_sql);
-    $verify_stmt->bind_param("ii", $material_id, $subject_id);
+    $verify_stmt->bind_param("ii", $theme_id, $subject_id);
     $verify_stmt->execute();
     $verify_result = $verify_stmt->get_result();
     
     if ($verify_result->num_rows > 0) {
-        $material = $verify_result->fetch_assoc();
-        $file_path = $material['Potek_do_datoteke'];
-        $file_name = $material['Ime_gradiva'];
+        $selected_theme = $verify_result->fetch_assoc();
         
-        if (file_exists($file_path)) {
-            // Determine content type based on file extension
-            $file_extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
-            
-            switch($file_extension) {
-                case 'pdf':
-                    header('Content-Type: application/pdf');
-                    header('Content-Disposition: inline; filename="' . $file_name . '"');
-                    break;
-                case 'doc':
-                case 'docx':
-                    header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-                    header('Content-Disposition: attachment; filename="' . $file_name . '"');
-                    break;
-                case 'txt':
-                    header('Content-Type: text/plain');
-                    header('Content-Disposition: inline; filename="' . $file_name . '"');
-                    break;
-                default:
-                    header('Content-Type: application/octet-stream');
-                    header('Content-Disposition: attachment; filename="' . $file_name . '"');
-            }
-            
-            header('Content-Length: ' . filesize($file_path));
-            readfile($file_path);
-            exit;
-        } else {
-            echo "File not found";
+        // Get exercises for this theme
+        $exercise_sql = "SELECT * FROM Naloga WHERE Id_vsebine = ? ORDER BY Id_naloge";
+        $exercise_stmt = $conn->prepare($exercise_sql);
+        $exercise_stmt->bind_param("i", $theme_id);
+        $exercise_stmt->execute();
+        $exercises_result = $exercise_stmt->get_result();
+        $exercises = [];
+        
+        while ($row = $exercises_result->fetch_assoc()) {
+            $exercises[] = $row;
         }
     }
 }
@@ -171,70 +152,85 @@ if (isset($_GET['download']) && isset($_GET['material_id'])) {
         </a>
     </div>
     
+    <?php if (!isset($_GET['theme_id'])): ?>
+    <!-- Display themes list -->
     <div class="list-container">
-        <h2 class="form-title">Gradivo</h2>
+        <h2 class="form-title">Teme (Vsebina)</h2>
         <ul class="subject-list">
             <?php
-            // Check if there are materials
-            if (count($materials) > 0) {
-                // Output each material
-                foreach($materials as $material) {
-                    $file_extension = strtolower(pathinfo($material['Potek_do_datoteke'], PATHINFO_EXTENSION));
-                    $icon_class = '';
-                    
-                    // Set appropriate icon based on file type
-                    switch($file_extension) {
-                        case 'pdf':
-                            $icon_class = 'fas fa-file-pdf';
-                            break;
-                        case 'doc':
-                        case 'docx':
-                            $icon_class = 'fas fa-file-word';
-                            break;
-                        case 'txt':
-                            $icon_class = 'fas fa-file-alt';
-                            break;
-                        case 'zip':
-                        case 'rar':
-                            $icon_class = 'fas fa-file-archive';
-                            break;
-                        default:
-                            $icon_class = 'fas fa-file';
-                    }
-                    
+            // Check if there are themes
+            if (count($themes) > 0) {
+                // Output each theme
+                foreach($themes as $theme) {
                     echo "<li class='subject-item'>";
-                    echo "<i class='$icon_class subject-icon'></i>";
-                    echo "<span>" . htmlspecialchars($material['Ime_gradiva']) . "</span>";
+                    echo "<i class='fas fa-folder subject-icon'></i>";
+                    echo "<span>" . htmlspecialchars($theme['snov']) . "</span>";
                     echo "<div class='material-actions'>";
                     
-                    // Download/view link
-                    $download_url = "?download=true&material_id=" . $material['Id_gradiva'] . "&subject_id=" . $subject_id;
-                    echo "<a href='" . htmlspecialchars($download_url) . "' class='download-btn'>";
-                    
-                    if ($file_extension == 'pdf') {
-                        echo "<i class='fas fa-eye'></i> View";
-                    } else {
-                        echo "<i class='fas fa-download'></i> Download";
-                    }
-                    
+                    // View exercises link
+                    $exercises_url = "?theme_id=" . $theme['Id_vsebine'] . "&subject_id=" . $subject_id;
+                    echo "<a href='" . htmlspecialchars($exercises_url) . "' class='download-btn'>";
+                    echo "<i class='fas fa-tasks'></i> Naloge";
                     echo "</a>";
                     echo "</div>";
                     echo "</li>";
                 }
             } else {
-                echo "<li class='subject-item'>Trenutno ni gradiva za ta predmet.</li>";
+                echo "<li class='subject-item'>Trenutno ni tem za ta predmet.</li>";
             }
             ?>
         </ul>
         
         <?php if ($user_type == 'ucitelj'): ?>
         <div class="teacher-actions">
-            <a href="dodaj_gradivo.php?subject_id=<?php echo $subject_id; ?>" class="add-subject-btn">
-                <i class="fas fa-plus"></i> Dodaj novo gradivo
+            <a href="dodaj_temo.php?subject_id=<?php echo $subject_id; ?>" class="add-subject-btn">
+                <i class="fas fa-plus"></i> Dodaj novo temo
             </a>
         </div>
         <?php endif; ?>
     </div>
+    
+    <?php else: ?>
+    <!-- Display exercises for selected theme -->
+    <div class="list-container">
+        <h2 class="form-title">
+            Naloge za temo: <?php echo htmlspecialchars($selected_theme['snov']); ?>
+            <a href="?subject_id=<?php echo $subject_id; ?>" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Nazaj na teme
+            </a>
+        </h2>
+        
+        <ul class="subject-list">
+            <?php
+            // Check if there are exercises
+            if (count($exercises) > 0) {
+                // Output each exercise
+                foreach($exercises as $exercise) {
+                    echo "<li class='subject-item'>";
+                    echo "<i class='fas fa-file-alt subject-icon'></i>";
+                    echo "<div class='exercise-content'>";
+                    echo "<strong>" . htmlspecialchars($exercise['opis_naloge']) . "</strong>";
+                    if (!empty($exercise['komentar'])) {
+                        echo "<p class='exercise-comment'>" . htmlspecialchars($exercise['komentar']) . "</p>";
+                    }
+                    echo "</div>";
+                    echo "</li>";
+                }
+            } else {
+                echo "<li class='subject-item'>Trenutno ni nalog za to temo.</li>";
+            }
+            ?>
+        </ul>
+        
+        <?php if ($user_type == 'ucitelj'): ?>
+        <div class="teacher-actions">
+            <a href="dodaj_nalogo.php?theme_id=<?php echo $theme_id; ?>&subject_id=<?php echo $subject_id; ?>" class="add-subject-btn">
+                <i class="fas fa-plus"></i> Dodaj novo nalogo
+            </a>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
     </body>
     <footer>
 

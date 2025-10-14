@@ -26,8 +26,23 @@ CREATE TABLE Uci_predmet (
     Id_predmeta int,
     PRIMARY KEY (Id_ucitelja, Id_predmeta),
     FOREIGN KEY (Id_ucitelja) REFERENCES Ucitelj(Id_ucitelja),
-    FOREIGN KEY (Id_predmeta) REFERENCES Predmet(Id_predmeta),
-    snov varchar(50)
+    FOREIGN KEY (Id_predmeta) REFERENCES Predmet(Id_predmeta)
+);
+
+CREATE TABLE Vsebina (
+    Id_vsebine int PRIMARY KEY,
+    Id_ucitelja int,
+    Id_predmeta int,
+    snov varchar(50),
+    FOREIGN KEY (Id_ucitelja, Id_predmeta) REFERENCES Uci_predmet(Id_ucitelja, Id_predmeta)
+);
+
+CREATE TABLE Naloga (
+    Id_naloge int PRIMARY KEY,
+    Id_vsebine int,
+    opis_naloge varchar(50),
+    komentar varchar(500),
+    FOREIGN KEY (Id_vsebine) REFERENCES Vsebina(Id_vsebine)
 );
 
 CREATE TABLE Dij_predmet (
@@ -36,7 +51,5 @@ CREATE TABLE Dij_predmet (
     Id_predmeta int, 
     PRIMARY KEY (Id_dijaka, Id_ucitelja, Id_predmeta),  
     FOREIGN KEY (Id_dijaka) REFERENCES Ucenec(Id_dijaka),
-    FOREIGN KEY (Id_ucitelja, Id_predmeta) REFERENCES Uci_predmet(Id_ucitelja, Id_predmeta),  
-    naloge varchar(50),
-    komentarji varchar(500)
+    FOREIGN KEY (Id_ucitelja, Id_predmeta) REFERENCES Uci_predmet(Id_ucitelja, Id_predmeta)
 );
