@@ -209,7 +209,7 @@ if (isset($_GET['theme_id'])) {
             if (count($exercises) > 0) {
                 // Output each exercise
                 foreach($exercises as $exercise) {
-                    echo "<li class='subject-item'>";
+                    echo "<li class='subject-item clickable-exercise'>";
                     echo "<i class='fas fa-file-alt subject-icon'></i>";
                     echo "<div class='exercise-content'>";
                     echo "<strong>" . htmlspecialchars($exercise['opis_naloge']) . "</strong>";
@@ -217,6 +217,9 @@ if (isset($_GET['theme_id'])) {
                         echo "<p class='exercise-comment'>" . htmlspecialchars($exercise['komentar']) . "</p>";
                     }
                     echo "</div>";
+                    
+                    // Dodaj skrito povezavo za preusmeritev
+                    echo "<a href='Naloga.php?naloga_id=" . $exercise['Id_naloge'] . "&theme_id=" . $theme_id . "&subject_id=" . $subject_id . "' class='exercise-link' style='display: none;'></a>";
                     echo "</li>";
                 }
             } else {
@@ -231,13 +234,42 @@ if (isset($_GET['theme_id'])) {
         <?php if ($user_type == 'ucitelj'): ?>
         <div class="teacher-actions">
             <a href="Naloga.php?theme_id=<?php echo $theme_id; ?>&subject_id=<?php echo $subject_id; 
-            ?>&naloga_id=<?php echo $exercise['Id_naloge']; ?>" class="add-subject-btn">
+            ?>" class="add-subject-btn">
                 <i class="fas fa-plus"></i> Dodaj novo nalogo
             </a>
         </div>
         <?php endif; ?>
     </div>
     <?php endif; ?>
+
+    <script>
+        // JavaScript za klik na naloge
+        document.addEventListener('DOMContentLoaded', function() {
+            const exerciseItems = document.querySelectorAll('.clickable-exercise');
+            
+            exerciseItems.forEach(item => {
+                item.style.cursor = 'pointer';
+                item.addEventListener('click', function() {
+                    const link = this.querySelector('.exercise-link');
+                    if (link) {
+                        window.location.href = link.href;
+                    }
+                });
+                
+                // Dodaj hover efekte
+                item.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#f8f9fa';
+                    this.style.transform = 'translateX(5px)';
+                    this.style.transition = 'all 0.3s ease';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '';
+                    this.style.transform = '';
+                });
+            });
+        });
+    </script>
     </body>
     <footer>
 

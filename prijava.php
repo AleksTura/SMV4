@@ -43,10 +43,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Prijava za učenca
                 $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
                 $id_column = 'Id_dijaka';
-            } else {
+            } else if ($user_type == 'ucitelj'){
                 // Prijava za učitelja
                 $sql = "SELECT Id_ucitelja, geslo FROM Ucitelj WHERE ime = ? AND priimek = ? LIMIT 1"; 
                 $id_column = 'Id_ucitelja';
+            }
+            else if ($user_type == 'admin'){
+                // Prijava za admina
+                $sql = "SELECT Id_admin, geslo FROM Admin WHERE ime = ? AND priimek = ? LIMIT 1"; 
+                $id_column = 'Id_admin';
             }
             
             $stmt = $conn->prepare($sql);
@@ -63,18 +68,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $row = $result->fetch_assoc();
                 $storedHash = $row['geslo'];
                 
-                // Verify password
-                if (password_verify($password_input, $storedHash)) {
+                // Verify password - POSEBNO ZA ADMINA
+                $passwordValid = false;
+                
+                if ($user_type == 'admin') {
+                    // Za admina preverjamo nehashirano geslo
+                    $passwordValid = ($password_input === $storedHash);
+                } else {
+                    // Za učence in učitelje uporabljamo password_verify
+                    $passwordValid = password_verify($password_input, $storedHash);
+                }
+                
+                if ($passwordValid) {
                     // Set session variables
                     $_SESSION['user_id'] = $row[$id_column];  
                     $_SESSION['user_type'] = $user_type;
                     $_SESSION['logged_in'] = true;
                     $_SESSION['user_name'] = $ime . ' ' . $priimek; // Shranimo ime za prikaz
 
-                    echo "<script>
-                    alert('Prijava uspešna - " . ($user_type === 'ucenec' ? 'Učenec' : 'Učitelj') . "');
-                    window.location.href = 'prvastran.php';
-                    </script>";
+                    if ($user_type == 'admin') {
+                        echo "<script>
+                        alert('Prijava uspešna - Admin');
+                        window.location.href = 'admin.php';
+                        </script>";
+                    } else {
+                        echo "<script>
+                        alert('Prijava uspešna - " . ($user_type === 'ucenec' ? 'Učenec' : 'Učitelj') . "');
+                        window.location.href = 'prvastran.php';
+                        </script>";
+                    }
                     exit;
                 } else {
                     $error_message = "Napačno geslo";
@@ -82,7 +104,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } else {
                 $error_message = ($user_type === 'ucenec' 
                     ? "Učenec s tem imenom in priimkom ne obstaja" 
-                    : "Učitelj s tem imenom in priimkom ne obstaja");
+                    : ($user_type === 'ucitelj' 
+                        ? "Učitelj s tem imenom in priimkom ne obstaja"
+                        : "Admin s tem imenom in priimkom ne obstaja"));
             }
             
             $stmt->close();
@@ -117,6 +141,7 @@ $conn->close();
                     <select id="user_type" name="user_type" class="form-control" required>
                         <option value="ucenec" <?php echo (($_POST['user_type'] ?? 'ucenec') === 'ucenec') ? 'selected' : ''; ?>>Učenec</option>
                         <option value="ucitelj" <?php echo (($_POST['user_type'] ?? '') === 'ucitelj') ? 'selected' : ''; ?>>Učitelj</option>
+                        <option value="admin" <?php echo (($_POST['user_type'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     </select>
                 </div>
 
