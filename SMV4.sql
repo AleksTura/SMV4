@@ -54,3 +54,10 @@ CREATE TABLE Dij_predmet (
     FOREIGN KEY (Id_dijaka) REFERENCES Ucenec(Id_dijaka),
     FOREIGN KEY (Id_ucitelja, Id_predmeta) REFERENCES Uci_predmet(Id_ucitelja, Id_predmeta)
 );
+
+CREATE TABLE Admin (
+    Id_admin int PRIMARY KEY AUTO_INCREMENT,
+    Ime varchar(50),
+    Priimek varchar(50),
+    Geslo varchar(255)
+);
