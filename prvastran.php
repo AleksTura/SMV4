@@ -80,7 +80,6 @@ if (isset($_POST['subject_id'])) {
     <div class="top-bar">
         <h1>Spletna učilnica</h1>
         <div class="user-info">
-            <span class="welcome-text">Pozdravljen, <?php echo htmlspecialchars($_SESSION['username'] ?? 'Uporabnik'); ?></span>
             <a href="profil.php" class="user-icon">
                 <i class="fas fa-user"></i>
             </a>
@@ -101,24 +100,6 @@ if (isset($_POST['subject_id'])) {
                     echo "<button type='submit' class='subject-link'>";
                     echo "<i class='fas fa-book subject-icon'></i>";
                     echo "<span class='subject-name'>" . htmlspecialchars($row['Ime_predmeta']) . "</span>";
-                    
-                    // Get theme count for this subject
-                    $theme_count_sql = "SELECT COUNT(*) as theme_count FROM Vsebina WHERE Id_predmeta = ?";
-                    if ($user_type == 'ucitelj') {
-                        $theme_count_sql .= " AND Id_ucitelja = ?";
-                    }
-                    
-                    $theme_stmt = $conn->prepare($theme_count_sql);
-                    if ($user_type == 'ucitelj') {
-                        $theme_stmt->bind_param("ii", $row['Id_predmeta'], $user_id);
-                    } else {
-                        $theme_stmt->bind_param("i", $row['Id_predmeta']);
-                    }
-                    $theme_stmt->execute();
-                    $theme_result = $theme_stmt->get_result();
-                    $theme_data = $theme_result->fetch_assoc();
-                    
-                    echo "<span class='subject-topic'>(" . $theme_data['theme_count'] . " tem)</span>";
                     echo "</button>";
                     echo "</form>";
                     echo "</li>";
@@ -139,14 +120,6 @@ if (isset($_POST['subject_id'])) {
             }
             ?>
         </ul>
-        
-        <?php if ($user_type == 'ucitelj'): ?>
-        <div class="teacher-actions">
-            <a href="dodaj_predmet.php" class="add-subject-btn">
-                <i class="fas fa-plus"></i> Dodaj nov predmet
-            </a>
-        </div>
-        <?php endif; ?>
     </div>
 
     <script>

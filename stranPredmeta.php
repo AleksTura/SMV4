@@ -157,7 +157,7 @@ if (isset($_GET['theme_id'])) {
     <?php if (!isset($_GET['theme_id'])): ?>
     <!-- Display themes list -->
     <div class="list-container">
-        <h2 class="form-title">Teme (Vsebina)</h2>
+        <h2 class="form-title">Snovi</h2>
         <ul class="subject-list">
             <?php
             // Check if there are themes
@@ -188,8 +188,8 @@ if (isset($_GET['theme_id'])) {
         
         <?php if ($user_type == 'ucitelj'): ?>
         <div class="teacher-actions">
-            <a href="dodaj_temo.php?subject_id=<?php echo $subject_id; ?>" class="add-subject-btn">
-                <i class="fas fa-plus"></i> Dodaj novo temo
+            <a href="Vsebina.php?subject_id=<?php echo $subject_id; ?>" class="add-subject-btn">
+                <i class="fas fa-plus"></i> Dodaj novo snov
             </a>
         </div>
         <?php endif; ?>
@@ -199,10 +199,8 @@ if (isset($_GET['theme_id'])) {
     <!-- Display exercises for selected theme -->
     <div class="list-container">
         <h2 class="form-title">
-            Naloge za temo: <?php echo htmlspecialchars($selected_theme['snov']); ?>
-            <a href="?subject_id=<?php echo $subject_id; ?>" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Nazaj na teme
-            </a>
+            Naloge za: <?php echo htmlspecialchars($selected_theme['snov']); ?>
+            
         </h2>
         
         <ul class="subject-list">
@@ -225,11 +223,15 @@ if (isset($_GET['theme_id'])) {
                 echo "<li class='subject-item'>Trenutno ni nalog za to temo.</li>";
             }
             ?>
+            <a href="?subject_id=<?php echo $subject_id; ?>" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Nazaj na snovi
+            </a>
         </ul>
         
         <?php if ($user_type == 'ucitelj'): ?>
         <div class="teacher-actions">
-            <a href="dodaj_nalogo.php?theme_id=<?php echo $theme_id; ?>&subject_id=<?php echo $subject_id; ?>" class="add-subject-btn">
+            <a href="Naloga.php?theme_id=<?php echo $theme_id; ?>&subject_id=<?php echo $subject_id; 
+            ?>&naloga_id=<?php echo $exercise['Id_naloge']; ?>" class="add-subject-btn">
                 <i class="fas fa-plus"></i> Dodaj novo nalogo
             </a>
         </div>
