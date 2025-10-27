@@ -39,9 +39,10 @@ $themes = []; // Changed from $materials to $themes
 if ($user_type == 'ucenec') {
     // For students - verify they are enrolled in this subject
     $sql = "SELECT p.Ime_predmeta 
-            FROM Predmet p 
-            INNER JOIN Dij_predmet dp ON p.Id_predmeta = dp.Id_predmeta 
-            WHERE dp.Id_dijaka = ? AND p.Id_predmeta = ?";
+            FROM Predmet p INNER JOIN Dij_predmet dp 
+            ON p.Id_predmeta = dp.Id_predmeta 
+            WHERE dp.Id_dijaka = ? 
+            AND p.Id_predmeta = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $subject_id);
     $stmt->execute();
@@ -53,8 +54,8 @@ if ($user_type == 'ucenec') {
         
         // Get themes (vsebina) for this subject
         $theme_sql = "SELECT v.*, up.Id_ucitelja 
-                     FROM Vsebina v 
-                     INNER JOIN Uci_predmet up ON v.Id_ucitelja = up.Id_ucitelja AND v.Id_predmeta = up.Id_predmeta 
+                     FROM Vsebina v INNER JOIN Uci_predmet up 
+                     ON v.Id_ucitelja = up.Id_ucitelja AND v.Id_predmeta = up.Id_predmeta 
                      WHERE v.Id_predmeta = ? 
                      ORDER BY v.Id_vsebine";
         $theme_stmt = $conn->prepare($theme_sql);
@@ -72,9 +73,10 @@ if ($user_type == 'ucenec') {
 } elseif ($user_type == 'ucitelj') {
     // For teachers - verify they teach this subject
     $sql = "SELECT p.Ime_predmeta 
-            FROM Predmet p 
-            INNER JOIN Uci_predmet up ON p.Id_predmeta = up.Id_predmeta 
-            WHERE up.Id_ucitelja = ? AND p.Id_predmeta = ?";
+            FROM Predmet p INNER JOIN Uci_predmet up 
+            ON p.Id_predmeta = up.Id_predmeta 
+            WHERE up.Id_ucitelja = ? 
+            AND p.Id_predmeta = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $subject_id);
     $stmt->execute();
@@ -179,6 +181,9 @@ if (isset($_GET['theme_id'])) {
                 echo "<li class='subject-item'>Trenutno ni tem za ta predmet.</li>";
             }
             ?>
+            <a href="prvastran.php" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Nazaj na predmete
+            </a>
         </ul>
         
         <?php if ($user_type == 'ucitelj'): ?>

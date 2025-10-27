@@ -96,7 +96,7 @@ if (isset($_POST['subject_id'])) {
                 // Output each row of data
                 while($row = $result->fetch_assoc()) {
                     echo "<li class='subject-item'>";
-                    echo "<form method='POST' action=''>";
+                    echo "<form method='POST' action='stranPredmeta.php'>";
                     echo "<input type='hidden' name='subject_id' value='" . $row['Id_predmeta'] . "'>";
                     echo "<button type='submit' class='subject-link'>";
                     echo "<i class='fas fa-book subject-icon'></i>";
