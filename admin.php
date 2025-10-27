@@ -11,12 +11,12 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
+/*
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     header('Location: prijava.php');
     exit;
-}
+}*/
 
 $success_message = "";
 $error_message = "";
@@ -104,21 +104,21 @@ $ucitelji = $conn->query("SELECT * FROM Ucitelj")->fetch_all(MYSQLI_ASSOC);
 $ucenci = $conn->query("SELECT * FROM Ucenec")->fetch_all(MYSQLI_ASSOC);
 $predmeti = $conn->query("SELECT * FROM Predmet")->fetch_all(MYSQLI_ASSOC);
 $vsebine = $conn->query("SELECT v.*, p.Ime_predmeta, u.Ime as UciteljIme, u.Priimek as UciteljPriimek 
-                         FROM Vsebina v 
-                         JOIN Predmet p ON v.Id_predmeta = p.Id_predmeta 
-                         JOIN Ucitelj u ON v.Id_ucitelja = u.Id_ucitelja")->fetch_all(MYSQLI_ASSOC);
+                         FROM Vsebina v JOIN Predmet p 
+                         ON v.Id_predmeta = p.Id_predmeta JOIN Ucitelj u 
+                         ON v.Id_ucitelja = u.Id_ucitelja")->fetch_all(MYSQLI_ASSOC);
 $naloge = $conn->query("SELECT n.*, v.snov, p.Ime_predmeta 
-                        FROM Naloga n 
-                        JOIN Vsebina v ON n.Id_vsebine = v.Id_vsebine 
-                        JOIN Predmet p ON v.Id_predmeta = p.Id_predmeta")->fetch_all(MYSQLI_ASSOC);
+                        FROM Naloga n JOIN Vsebina v
+                        ON n.Id_vsebine = v.Id_vsebine JOIN Predmet p 
+                        ON v.Id_predmeta = p.Id_predmeta")->fetch_all(MYSQLI_ASSOC);
 $uci_predmet = $conn->query("SELECT up.*, u.Ime as UciteljIme, u.Priimek as UciteljPriimek, p.Ime_predmeta 
-                             FROM Uci_predmet up 
-                             JOIN Ucitelj u ON up.Id_ucitelja = u.Id_ucitelja 
-                             JOIN Predmet p ON up.Id_predmeta = p.Id_predmeta")->fetch_all(MYSQLI_ASSOC);
+                             FROM Uci_predmet up JOIN Ucitelj u 
+                             ON up.Id_ucitelja = u.Id_ucitelja JOIN Predmet p 
+                             ON up.Id_predmeta = p.Id_predmeta")->fetch_all(MYSQLI_ASSOC);
 $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as UcenecPriimek, p.Ime_predmeta 
-                             FROM Dij_predmet dp 
-                             JOIN Ucenec u ON dp.Id_dijaka = u.Id_dijaka 
-                             JOIN Predmet p ON dp.Id_predmeta = p.Id_predmeta")->fetch_all(MYSQLI_ASSOC);
+                             FROM Dij_predmet dp JOIN Ucenec u 
+                             ON dp.Id_dijaka = u.Id_dijaka JOIN Predmet p 
+                             ON dp.Id_predmeta = p.Id_predmeta")->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <html>
@@ -217,7 +217,7 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
     <div class="top-bar">
         <h1><i class="fas fa-cogs"></i> Admin Panel</h1>
         <a href="prvastran.php" class="user-icon">
-            <i class="fas fa-home"></i> Domov
+            <i class="fas fa-sign-out-alt"></i> Odjavi se
         </a>
     </div>
     
