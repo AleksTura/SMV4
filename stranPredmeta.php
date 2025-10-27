@@ -212,10 +212,11 @@ if (isset($_GET['theme_id'])) {
                     echo "<li class='subject-item clickable-exercise'>";
                     echo "<i class='fas fa-file-alt subject-icon'></i>";
                     echo "<div class='exercise-content'>";
+                    echo "<a href='Naloga.php?theme_id=" . htmlspecialchars($theme_id) . "&subject_id=" .
+                     htmlspecialchars($subject_id) . "&naloga_id=" . htmlspecialchars($exercise['Id_naloge']) .
+                     "' class='add-subject-btn'>";
                     echo "<strong>" . htmlspecialchars($exercise['opis_naloge']) . "</strong>";
-                    if (!empty($exercise['komentar'])) {
-                        echo "<p class='exercise-comment'>" . htmlspecialchars($exercise['komentar']) . "</p>";
-                    }
+                    echo "</a>";
                     echo "</div>";
                     
                     // Dodaj skrito povezavo za preusmeritev
