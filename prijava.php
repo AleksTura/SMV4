@@ -16,6 +16,7 @@ $error_message = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username_input = $_POST['username'] ?? '';
     $password_input = $_POST['password'] ?? '';
+    $user_type = $_POST['user_type'] ?? 'ucenec'; // Dodano: tip uporabnika
 
     $errors = [];
     
@@ -38,8 +39,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (empty($priimek)) {
             $error_message = "Vnesite polno ime in priimek (npr: Janez Novak)";
         } else {
-            // Prepare SQL statement
-            $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
+            if ($user_type === 'ucenec') {
+                // Prijava za učenca
+                $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
+                $id_column = 'Id_dijaka';
+            } else {
+                // Prijava za učitelja
+                $sql = "SELECT Id_ucitelja, geslo FROM Ucitelj WHERE ime = ? AND priimek = ? LIMIT 1"; 
+                $id_column = 'Id_ucitelja';
+            }
+            
             $stmt = $conn->prepare($sql);
             
             if (!$stmt) {
@@ -57,14 +66,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Verify password
                 if (password_verify($password_input, $storedHash)) {
                     // Set session variables
-                    $_SESSION['user_id'] = $row['Id_dijaka'];  
-                    $_SESSION['user_type'] = "ucenec";
+                    $_SESSION['user_id'] = $row[$id_column];  
+                    $_SESSION['user_type'] = $user_type;
                     $_SESSION['logged_in'] = true;
-                    //nared se za ucitla enako in v type napis ucitelj
-                    
+                    $_SESSION['user_name'] = $ime . ' ' . $priimek; // Shranimo ime za prikaz
 
                     echo "<script>
-                    alert('Prijava uspešna');
+                    alert('Prijava uspešna - " . ($user_type === 'ucenec' ? 'Učenec' : 'Učitelj') . "');
                     window.location.href = 'prvastran.php';
                     </script>";
                     exit;
@@ -72,7 +80,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $error_message = "Napačno geslo";
                 }
             } else {
-                $error_message = "Uporabnik s tem imenom in priimkom ne obstaja";
+                $error_message = ($user_type === 'ucenec' 
+                    ? "Učenec s tem imenom in priimkom ne obstaja" 
+                    : "Učitelj s tem imenom in priimkom ne obstaja");
             }
             
             $stmt->close();
@@ -101,6 +111,15 @@ $conn->close();
         
         <div class="VpisBox">
             <form action="prijava.php" method="POST" id="loginForm">
+                <!-- Dodano: Izbira tipa uporabnika -->
+                <div class="form-group">
+                    <label for="user_type">Prijavim se kot:</label>
+                    <select id="user_type" name="user_type" class="form-control" required>
+                        <option value="ucenec" <?php echo (($_POST['user_type'] ?? 'ucenec') === 'ucenec') ? 'selected' : ''; ?>>Učenec</option>
+                        <option value="ucitelj" <?php echo (($_POST['user_type'] ?? '') === 'ucitelj') ? 'selected' : ''; ?>>Učitelj</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label for="username">Ime in priimek</label>
                     <input type="text" id="username" name="username" class="form-control" placeholder="Vnesite ime in priimek" value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>" required>
