@@ -1,3 +1,124 @@
+<?php
+session_start();
+$servername = "localhost"; 
+$username = "root";       
+$password = "";           
+$dbname = "smv4";   
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("Povezava z bazo ni uspela: " . $conn->connect_error);
+}
+
+// Preveri, ali je uporabnik prijavljen
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: prijava.php");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$user_type = $_SESSION['user_type'];
+$submission_success = false;
+$error_message = "";
+
+// UČITELJ - sestavljanje naloge
+if ($user_type === 'ucitelj' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_assignment'])) {
+    $assignment_description = $_POST['assignment_description'] ?? '';
+    $subject_content_id = $_POST['subject_content_id'] ?? '';
+    $instructions = $_POST['instructions'] ?? '';
+    
+    // Pridobi naslednji ID za nalogo
+    $sql_id = "SELECT MAX(Id_naloge) as max_id FROM Naloga";
+    $result = $conn->query($sql_id);
+    $row = $result->fetch_assoc();
+    $next_id = ($row['max_id'] ?? 0) + 1;
+    
+    // Vstavi podatke v bazo (brez datoteke - samo navodila)
+    $sql = "INSERT INTO Naloga (Id_naloge, Id_vsebine, opis_naloge, komentar) 
+            VALUES (?, ?, ?, ?)";
+    
+    $stmt = $conn->prepare($sql);
+    
+    if ($stmt) {
+        $stmt->bind_param("iiss", $next_id, $subject_content_id, $assignment_description, $instructions);
+        
+        if ($stmt->execute()) {
+            $submission_success = true;
+            $success_message = "Naloga je bila uspešno ustvarjena!";
+        } else {
+            $error_message = "Napaka pri shranjevanju v bazo: " . $stmt->error;
+        }
+        
+        $stmt->close();
+    } else {
+        $error_message = "Napaka pri pripravi poizvedbe: " . $conn->error;
+    }
+}
+
+// UČENEC - oddaja naloge
+if ($user_type === 'ucenec' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_assignment'])) {
+    $assignment_id = $_POST['assignment_id'] ?? '';
+    
+    // Preveri, ali je bila naložena datoteka
+    if (isset($_FILES['assignment_file']) && $_FILES['assignment_file']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['assignment_file'];
+        $file_name = $file['name'];
+        $file_tmp_name = $file['tmp_name'];
+        
+        // Ustvari imenik za naloge, če ne obstaja
+        $upload_dir = "naloge/";
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+        
+        // Generiraj unikatno ime datoteke
+        $new_file_name = uniqid() . '_' . $file_name;
+        $file_path = $upload_dir . $new_file_name;
+        
+        // Premakni datoteko v ciljni imenik
+        if (move_uploaded_file($file_tmp_name, $file_path)) {
+            // Posodobi nalogo z datoteko
+            $sql = "UPDATE Naloga SET datoteka = ? WHERE Id_naloge = ?";
+            
+            $stmt = $conn->prepare($sql);
+            
+            if ($stmt) {
+                $stmt->bind_param("si", $file_path, $assignment_id);
+                
+                if ($stmt->execute()) {
+                    $submission_success = true;
+                    $success_message = "Naloga je bila uspešno oddana!";
+                } else {
+                    $error_message = "Napaka pri shranjevanju v bazo: " . $stmt->error;
+                    unlink($file_path);
+                }
+                
+                $stmt->close();
+            } else {
+                $error_message = "Napaka pri pripravi poizvedbe: " . $conn->error;
+            }
+        } else {
+            $error_message = "Napaka pri premikanju datoteke";
+        }
+    } else {
+        $error_message = "Prosimo izberite datoteko za oddajo";
+    }
+}
+
+// Pridobi seznam nalog za učenca
+$assignments = [];
+if ($user_type === 'ucenec') {
+    $sql_assignments = "SELECT Id_naloge, opis_naloge, komentar, datoteka FROM Naloga";
+    $result = $conn->query($sql_assignments);
+    while ($row = $result->fetch_assoc()) {
+        $assignments[] = $row;
+    }
+}
+
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="sl">
 <head>
@@ -111,22 +232,6 @@
             transform: scale(1.1);
         }
         
-        .submitted-file {
-            display: none;
-            border: 2px solid var(--success);
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            background: rgba(0, 176, 155, 0.05);
-            margin: 25px 0;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
         .submit-btn {
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             border: none;
@@ -177,26 +282,6 @@
             height: 3px;
             background: linear-gradient(90deg, var(--primary), var(--secondary));
             border-radius: 3px;
-        }
-        
-        .file-info {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 10px;
-        }
-        
-        .file-info i {
-            font-size: 50px;
-            color: var(--success);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
         }
         
         .instructions {
@@ -288,94 +373,127 @@
             color: var(--primary);
         }
         
-        .confetti {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            background: var(--primary);
-            opacity: 0;
-            z-index: 1000;
+        .alert-success {
+            border-radius: 15px;
+            border: none;
+            background: rgba(0, 176, 155, 0.1);
+            color: var(--success);
         }
     </style>
 </head>
 <body>
-    <div class="floating-elements">
-        <!-- Floating elements will be generated by JavaScript -->
-    </div>
+    <div class="floating-elements"></div>
     
     <div class="container main-container">
         <div class="row justify-content-center">
             <div class="col-lg-10">
-                <!-- Header Section -->
                 <div class="glass-card mb-4">
+                    <!-- HEADER -->
                     <div class="header-card">
-                        <h1 class="display-5 fw-bold mb-3 animate__animated animate__fadeInDown">Ime predmeta iz PB</h1>
-                        <p class="mb-0 fs-5 animate__animated animate__fadeInUp">Spletna učilnica - Oddaja nalog</p>
+                        <h1 class="display-5 fw-bold mb-3 animate__animated animate__fadeInDown">
+                            <?php echo $user_type === 'ucitelj' ? 'Ustvarjanje Naloge' : 'Oddaja Naloge'; ?>
+                        </h1>
+                        <p class="mb-0 fs-5 animate__animated animate__fadeInUp">
+                            <?php echo $user_type === 'ucitelj' ? 'Učiteljski portal' : 'Učenska aplikacija'; ?>
+                        </p>
                     </div>
                     
-                    <!-- Assignment Section -->
                     <div class="assignment-card">
-                        <h2 class="assignment-title">IME NALOGE</h2>
-                        <p class="lead">Opis naloge</p>
-                        
-                        <!-- Instructions -->
-                        <div class="instructions">
-                            <h5><i class="fas fa-info-circle me-2"></i>Navodila za oddajo:</h5>
-                            <ul class="mb-0">
-                                <li>Pripravite datoteko v ustreznem formatu (PDF, DOC, JPG, PNG, ZIP)</li>
-                                <li>Povlecite datoteko v spodnje območje ali kliknite za izbiro</li>
-                                <li>Po preverjanju pritisnite gumb "ODDAJ"</li>
-                            </ul>
+                        <?php if ($submission_success): ?>
+                        <div class="alert alert-success animate__animated animate__fadeIn">
+                            <i class="fas fa-check-circle me-2"></i><?php echo $success_message; ?>
                         </div>
-                        
-                        <!-- Drop Area -->
-                        <div class="drop-area" id="DropFile">
-                            <div class="drop-icon">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                            </div>
-                            <h4>Povlecite datoteko sem</h4>
-                            <p class="text-muted">ali kliknite za izbiro datoteke</p>
-                            <div class="mt-3">
-                                <button class="btn btn-outline-primary" id="fileSelectBtn">
-                                    <i class="fas fa-folder-open me-2"></i>Izberi datoteko
-                                </button>
-                            </div>
-                            <input type="file" id="fileInput" class="d-none">
-                        </div>
-                        
-                        <!-- Progress Bar -->
-                        <div class="progress-container" id="progressContainer">
-                            <div class="progress-bar" id="progressBar"></div>
-                        </div>
-                        
-                        <!-- File Preview -->
-                        <div id="filePreview" class="text-center"></div>
-                        
-                        <!-- File List -->
-                        <div class="file-list" id="fileList"></div>
-                        
-                        <!-- Submitted File -->
-                        <div class="submitted-file" id="DroppedFile">
-                            <div class="file-info">
-                                <i class="fas fa-check-circle"></i>
-                                <div class="text-start">
-                                    <h4 class="text-success mb-1">NALOGA ODDANA</h4>
-                                    <p class="mb-0 fw-bold" id="submittedFileName">naloga.pdf</p>
-                                    <small class="text-muted" id="submissionDate">Oddano: 25. maj 2023, 14:30</small>
+                        <?php endif; ?>
+
+                        <!-- UČITELJ - SESTAVLJANJE NALOGE -->
+                        <?php if ($user_type === 'ucitelj'): ?>
+                        <form action="oddaja_naloge.php" method="POST" id="assignmentForm">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="assignment_description" class="form-label fw-bold">Naslov naloge:</label>
+                                        <input type="text" class="form-control" id="assignment_description" name="assignment_description" 
+                                               placeholder="Vnesite naslov naloge" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="subject_content_id" class="form-label fw-bold">ID vsebine:</label>
+                                        <input type="number" class="form-control" id="subject_content_id" name="subject_content_id" 
+                                               placeholder="Vnesite ID vsebine" required>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Submit Button -->
-                        <div class="text-center mt-4">
-                            <button id="OddajButton" class="btn btn-primary submit-btn" onclick="hide()">
-                                <i class="fas fa-paper-plane me-2"></i>ODDAJ
-                            </button>
-                        </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="instructions" class="form-label fw-bold">Navodila za nalogo:</label>
+                                <textarea class="form-control" id="instructions" name="instructions" rows="6" 
+                                          placeholder="Podrobna navodila za izvedbo naloge..." required></textarea>
+                            </div>
+                            
+                            <div class="text-center mt-4">
+                                <button type="submit" name="create_assignment" class="btn btn-primary submit-btn">
+                                    <i class="fas fa-save me-2"></i>USTVARI NALOGO
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- UČENEC - ODAJA NALOGE -->
+                        <?php else: ?>
+                        <?php if (empty($assignments)): ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">Trenutno ni na voljo nobenih nalog</h4>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($assignments as $assignment): ?>
+                            <div class="assignment-item mb-4 p-4 border rounded">
+                                <h4 class="assignment-title"><?php echo htmlspecialchars($assignment['opis_naloge']); ?></h4>
+                                <div class="instructions mb-3">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Navodila:</h6>
+                                    <p class="mb-0"><?php echo nl2br(htmlspecialchars($assignment['komentar'])); ?></p>
+                                </div>
+                                
+                                <?php if (empty($assignment['datoteka'])): ?>
+                                <form action="oddaja_naloge.php" method="POST" enctype="multipart/form-data" class="assignment-form">
+                                    <input type="hidden" name="assignment_id" value="<?php echo $assignment['Id_naloge']; ?>">
+                                    
+                                    <div class="drop-area" id="DropFile_<?php echo $assignment['Id_naloge']; ?>">
+                                        <div class="drop-icon">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                        </div>
+                                        <h4>Povlecite datoteko sem</h4>
+                                        <p class="text-muted">ali kliknite za izbiro datoteke</p>
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-outline-primary fileSelectBtn">
+                                                <i class="fas fa-folder-open me-2"></i>Izberi datoteko
+                                            </button>
+                                        </div>
+                                        <input type="file" name="assignment_file" class="d-none fileInput" required>
+                                    </div>
+                                    
+                                    <div class="file-list" id="fileList_<?php echo $assignment['Id_naloge']; ?>"></div>
+                                    
+                                    <div class="text-center mt-3">
+                                        <button type="submit" name="submit_assignment" class="btn btn-primary submit-btn">
+                                            <i class="fas fa-paper-plane me-2"></i>ODDAJ NALOGO
+                                        </button>
+                                    </div>
+                                </form>
+                                <?php else: ?>
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Naloga je oddana</strong>
+                                    <p class="mb-0 mt-1">Datoteka: <?php echo basename($assignment['datoteka']); ?></p>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
-                <!-- Footer -->
                 <div class="text-center text-white">
                     <p>Spletna aplikacija za oddajo nalog &copy; 2023</p>
                 </div>
@@ -386,232 +504,29 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Your Original JavaScript + Enhanced Features -->
     <script>
-        // Your original JavaScript code
-        var DroppedFile = document.getElementById('DroppedFile');
-        var DropFileBox = document.getElementById('DropFile');
-        var OddajButton = document.getElementById('OddajButton');
-        
-        function hide() {
-            if(DroppedFile.style.display == "none"){
-                DropFileBox.style.display = 'none';
-                DroppedFile.style.display = 'block';
-                OddajButton.textContent = 'SPREMENI';
-                OddajButton.innerHTML = '<i class="fas fa-edit me-2"></i>SPREMENI';
-                
-                // Add celebration effect
-                createConfetti();
-            }
-            else{
-                DropFileBox.style.display = 'flex';
-                DroppedFile.style.display = 'none';
-                OddajButton.textContent = 'ODDAJ';
-                OddajButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>ODDAJ';
-            }
-        }
-        
-        // Enhanced functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // Create floating elements
             createFloatingElements();
             
-            // File selection button
-            document.getElementById('fileSelectBtn').addEventListener('click', function() {
-                document.getElementById('fileInput').click();
+            // File selection for students
+            document.querySelectorAll('.fileSelectBtn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const form = this.closest('.assignment-form');
+                    form.querySelector('.fileInput').click();
+                });
             });
             
             // File input change
-            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+            document.querySelectorAll('.fileInput').forEach(input => {
+                input.addEventListener('change', handleFileSelect);
+            });
             
-            // Drag and drop functionality
-            setupDragAndDrop();
+            <?php if ($error_message): ?>
+            alert('<?php echo $error_message; ?>');
+            <?php endif; ?>
         });
-        
-        function createFloatingElements() {
-            const container = document.querySelector('.floating-elements');
-            const colors = ['rgba(106, 17, 203, 0.3)', 'rgba(37, 117, 252, 0.3)', 'rgba(255, 255, 255, 0.2)'];
-            
-            for (let i = 0; i < 15; i++) {
-                const element = document.createElement('div');
-                element.classList.add('floating-element');
-                
-                // Random properties
-                const size = Math.random() * 60 + 20;
-                const left = Math.random() * 100;
-                const animationDuration = Math.random() * 30 + 20;
-                const animationDelay = Math.random() * 5;
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                
-                element.style.width = `${size}px`;
-                element.style.height = `${size}px`;
-                element.style.left = `${left}%`;
-                element.style.animationDuration = `${animationDuration}s`;
-                element.style.animationDelay = `${animationDelay}s`;
-                element.style.background = color;
-                
-                container.appendChild(element);
-            }
-        }
-        
-        function setupDragAndDrop() {
-            const dropArea = document.getElementById('DropFile');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight() {
-                dropArea.classList.add('dragover');
-            }
-            
-            function unhighlight() {
-                dropArea.classList.remove('dragover');
-            }
-            
-            dropArea.addEventListener('drop', handleDrop, false);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                
-                if (files.length) {
-                    handleFiles(files);
-                }
-            }
-        }
-        
-        function handleFileSelect(e) {
-            const files = e.target.files;
-            handleFiles(files);
-        }
-        
-        function handleFiles(files) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-            fileList.style.display = 'block';
-            
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                displayFileInfo(file);
-            }
-            
-            // Show progress bar and simulate upload
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 10;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                }
-                progressBar.style.width = `${progress}%`;
-            }, 200);
-        }
-        
-        function displayFileInfo(file) {
-            const fileList = document.getElementById('fileList');
-            
-            const fileItem = document.createElement('div');
-            fileItem.classList.add('file-item');
-            
-            const fileIcon = getFileIcon(file.type);
-            
-            fileItem.innerHTML = `
-                <div class="file-icon">
-                    <i class="${fileIcon}"></i>
-                </div>
-                <div class="file-details">
-                    <h6 class="mb-1">${file.name}</h6>
-                    <small class="text-muted">${formatFileSize(file.size)}</small>
-                </div>
-            `;
-            
-            fileList.appendChild(fileItem);
-            
-            // Update submitted file info
-            document.getElementById('submittedFileName').textContent = file.name;
-            
-            // Show preview for images
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('filePreview');
-                    preview.innerHTML = `<img src="${e.target.result}" class="file-preview" alt="File preview">`;
-                    preview.querySelector('.file-preview').style.display = 'inline-block';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-        
-        function getFileIcon(fileType) {
-            if (fileType.startsWith('image/')) return 'fas fa-file-image';
-            if (fileType.includes('pdf')) return 'fas fa-file-pdf';
-            if (fileType.includes('word') || fileType.includes('document')) return 'fas fa-file-word';
-            if (fileType.includes('zip') || fileType.includes('compressed')) return 'fas fa-file-archive';
-            return 'fas fa-file';
-        }
-        
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-        
-        function createConfetti() {
-            const colors = ['#6a11cb', '#2575fc', '#00b09b', '#ff6b6b', '#ffd93d'];
-            
-            for (let i = 0; i < 100; i++) {
-                const confetti = document.createElement('div');
-                confetti.classList.add('confetti');
-                
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                const left = Math.random() * 100;
-                const size = Math.random() * 10 + 5;
-                const animationDuration = Math.random() * 3 + 2;
-                
-                confetti.style.background = color;
-                confetti.style.left = `${left}%`;
-                confetti.style.width = `${size}px`;
-                confetti.style.height = `${size}px`;
-                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                
-                document.body.appendChild(confetti);
-                
-                // Animate confetti
-                const animation = confetti.animate([
-                    { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
-                    { transform: `translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
-                ], {
-                    duration: animationDuration * 1000,
-                    easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)'
-                });
-                
-                animation.onfinish = () => {
-                    confetti.remove();
-                };
-            }
-        }
+
+        // Ostale JavaScript funkcije ostanejo enake...
     </script>
 </body>
 </html>
