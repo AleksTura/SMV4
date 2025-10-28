@@ -19,6 +19,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
+//if (isset($_GET['theme_id']) && isset($_GET['subject_id']) && isset($_GET['naloga_id'])) {
+//    $vsebina_id = $_GET['theme_id'];
+//    $predmet_id = $_GET['subject_id'];
+//    $naloga_id = $_GET['naloga_id'];
 $submission_success = false;
 $error_message = "";
 
@@ -114,9 +118,15 @@ if ($user_type === 'ucenec' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_P
 }
 
 // Pridobi seznam nalog za učenca
+// to ti vse naloge ku obstajajo nardi z get dob id_naloge iz headerja in pol dj v pogoj 
+//tkole z komentarji bom spisala kar mors spremenit
 $assignments = [];
 if ($user_type === 'ucenec') {
-    $sql_assignments = "SELECT Id_naloge, opis_naloge, komentar, datoteka FROM Naloga";
+    $sql_assignments = "SELECT Id_naloge, opis_naloge, komentar, datoteka 
+                        FROM Naloga";
+                        //WHERE id_naloge = ?";
+    //$stmt->bind_param("i", $naloga_id);
+        //tole nevem kujk je prav z chatom si pomagi spremenit
     $result = $conn->query($sql_assignments);
     if ($result) {
         while ($row = $result->fetch_assoc()) {
@@ -124,6 +134,7 @@ if ($user_type === 'ucenec') {
         }
     }
 }
+
 
 $conn->close();
 ?>

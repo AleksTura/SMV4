@@ -42,7 +42,7 @@ CREATE TABLE Naloga (
     Id_vsebine int,
     opis_naloge varchar(50),
     komentar varchar(500),
-    datoteka varchar,
+    datoteka varchar(255),
     FOREIGN KEY (Id_vsebine) REFERENCES Vsebina(Id_vsebine)
 );
 

@@ -216,7 +216,7 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
     
     <div class="top-bar">
         <h1><i class="fas fa-cogs"></i> Admin Panel</h1>
-        <a href="prvastran.php" class="user-icon">
+        <a href="prijava.php" class="user-icon" session_destroy()>
             <i class="fas fa-sign-out-alt"></i> Odjavi se
         </a>
     </div>

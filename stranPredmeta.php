@@ -18,14 +18,16 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Get user ID and subject ID from session
+// Get user ID and user type from session
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
-$subject_id = isset($_SESSION['subject_id']) ? $_SESSION['subject_id'] : null;
 
-// If subject_id is not in session, try to get it from GET or POST
-if (!$subject_id) {
-    $subject_id = isset($_GET['subject_id']) ? $_GET['subject_id'] : (isset($_POST['subject_id']) ? $_POST['subject_id'] : null);
+// Get subject_id - priority: GET > POST > SESSION
+$subject_id = $_GET['subject_id'] ?? $_POST['subject_id'] ?? $_SESSION['subject_id'] ?? null;
+
+// Update session if we got a new subject_id from GET or POST
+if ($subject_id && $subject_id != ($_SESSION['subject_id'] ?? null)) {
+    $_SESSION['subject_id'] = $subject_id;
 }
 
 if (!$subject_id) {
@@ -152,6 +154,9 @@ if (isset($_GET['theme_id'])) {
         <a href="profil.php" class="user-icon">
             <i class="fas fa-user"></i>
         </a>
+        <a href="prijava.php" class="user-icon" session_destroy()>
+            <i class="fas fa-sign-out-alt"></i> Odjavi se
+        </a>
     </div>
     
     <?php if (!isset($_GET['theme_id'])): ?>
@@ -168,12 +173,10 @@ if (isset($_GET['theme_id'])) {
                     echo "<i class='fas fa-folder subject-icon'></i>";
                     echo "<span>" . htmlspecialchars($theme['snov']) . "</span>";
                     echo "<div class='material-actions'>";
-                    
-                    // View exercises link
                     $exercises_url = "?theme_id=" . $theme['Id_vsebine'] . "&subject_id=" . $subject_id;
                     echo "<a href='" . htmlspecialchars($exercises_url) . "' class='download-btn'>";
                     echo "<i class='fas fa-tasks'></i> Naloge";
-                    echo "</a>";
+                    echo "</a>";               
                     echo "</div>";
                     echo "</li>";
                 }

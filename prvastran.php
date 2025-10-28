@@ -29,9 +29,9 @@ $user_type = $_SESSION['user_type'];
 if ($user_type == 'ucenec') {
     // For students - get subjects they are enrolled in
     $sql = "SELECT DISTINCT p.Id_predmeta, p.Ime_predmeta
-            FROM Predmet p 
-            INNER JOIN Dij_predmet dp ON p.Id_predmeta = dp.Id_predmeta 
-            INNER JOIN Uci_predmet up ON dp.Id_ucitelja = up.Id_ucitelja AND dp.Id_predmeta = up.Id_predmeta
+            FROM Predmet p INNER JOIN Dij_predmet dp 
+            ON p.Id_predmeta = dp.Id_predmeta INNER JOIN Uci_predmet up 
+            ON dp.Id_ucitelja = up.Id_ucitelja AND dp.Id_predmeta = up.Id_predmeta
             WHERE dp.Id_dijaka = ? 
             ORDER BY p.Ime_predmeta";
     $stmt = $conn->prepare($sql);
@@ -42,8 +42,8 @@ if ($user_type == 'ucenec') {
 } elseif ($user_type == 'ucitelj') {
     // For teachers - get subjects they teach
     $sql = "SELECT p.Id_predmeta, p.Ime_predmeta
-            FROM Predmet p 
-            INNER JOIN Uci_predmet up ON p.Id_predmeta = up.Id_predmeta 
+            FROM Predmet p INNER JOIN Uci_predmet up 
+            ON p.Id_predmeta = up.Id_predmeta 
             WHERE up.Id_ucitelja = ? 
             ORDER BY p.Ime_predmeta";
     $stmt = $conn->prepare($sql);
@@ -53,13 +53,6 @@ if ($user_type == 'ucenec') {
     
 } else {
     die("Invalid user type");
-}
-
-// Handle subject click - store subject ID in session and redirect
-if (isset($_POST['subject_id'])) {
-    $_SESSION['subject_id'] = $_POST['subject_id'];
-    header('Location: predmet.php');
-    exit;
 }
 ?>
 
@@ -83,6 +76,9 @@ if (isset($_POST['subject_id'])) {
             <a href="profil.php" class="user-icon">
                 <i class="fas fa-user"></i>
             </a>
+            <a href="prijava.php" class="user-icon" session.destroy()>
+                <i class="fas fa-sign-out-alt"></i> Odjavi se
+            </a>
         </div>
     </div>
     
@@ -95,13 +91,11 @@ if (isset($_POST['subject_id'])) {
                 // Output each row of data
                 while($row = $result->fetch_assoc()) {
                     echo "<li class='subject-item'>";
-                    echo "<form method='POST' action='stranPredmeta.php'>";
-                    echo "<input type='hidden' name='subject_id' value='" . $row['Id_predmeta'] . "'>";
-                    echo "<button type='submit' class='subject-link'>";
+                    // Use direct link instead of form
+                    echo "<a href='stranPredmeta.php?subject_id=" . $row['Id_predmeta'] . "' class='subject-link'>";
                     echo "<i class='fas fa-book subject-icon'></i>";
                     echo "<span class='subject-name'>" . htmlspecialchars($row['Ime_predmeta']) . "</span>";
-                    echo "</button>";
-                    echo "</form>";
+                    echo "</a>";
                     echo "</li>";
                 }
             } else {
