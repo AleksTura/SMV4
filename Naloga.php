@@ -19,10 +19,14 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
-//if (isset($_GET['theme_id']) && isset($_GET['subject_id']) && isset($_GET['naloga_id'])) {
-//    $vsebina_id = $_GET['theme_id'];
-//    $predmet_id = $_GET['subject_id'];
-//    $naloga_id = $_GET['naloga_id'];
+
+// Preveri, ali so podani parametri za nalogo
+if (isset($_GET['naloga_id'])) {
+    $naloga_id = $_GET['naloga_id'];
+} else {
+    die("Manjkajoči parameter naloga_id");
+}
+
 $submission_success = false;
 $error_message = "";
 
@@ -96,7 +100,7 @@ if ($user_type === 'ucenec' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_P
                     $submission_success = true;
                     $success_message = "Naloga je bila uspešno oddana!";
                     // Osveži seznam nalog, da se prikaže posodobljen status
-                    header("Location: " . $_SERVER['PHP_SELF']);
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?naloga_id=" . $naloga_id);
                     exit;
                 } else {
                     $error_message = "Napaka pri shranjevanju v bazo: " . $stmt->error;
@@ -117,24 +121,21 @@ if ($user_type === 'ucenec' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_P
     }
 }
 
-// Pridobi seznam nalog za učenca
-// to ti vse naloge ku obstajajo nardi z get dob id_naloge iz headerja in pol dj v pogoj 
-//tkole z komentarji bom spisala kar mors spremenit
-$assignments = [];
-if ($user_type === 'ucenec') {
-    $sql_assignments = "SELECT Id_naloge, opis_naloge, komentar, datoteka 
-                        FROM Naloga";
-                        //WHERE id_naloge = ?";
-    //$stmt->bind_param("i", $naloga_id);
-        //tole nevem kujk je prav z chatom si pomagi spremenit
-    $result = $conn->query($sql_assignments);
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $assignments[] = $row;
-        }
-    }
+// Pridobi podatke o specifični nalogi
+$assignment = null;
+$sql_assignment = "SELECT Id_naloge, opis_naloge, komentar, datoteka 
+                   FROM Naloga 
+                   WHERE Id_naloge = ?";
+$stmt = $conn->prepare($sql_assignment);
+if ($stmt) {
+    $stmt->bind_param("i", $naloga_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $assignment = $result->fetch_assoc();
+    $stmt->close();
+} else {
+    $error_message = "Napaka pri pridobivanju podatkov o nalogi: " . $conn->error;
 }
-
 
 $conn->close();
 ?>
@@ -228,7 +229,7 @@ $conn->close();
 
                         <!-- UČITELJ - SESTAVLJANJE NALOGE -->
                         <?php if ($user_type === 'ucitelj'): ?>
-                        <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST">
+                        <form action="<?php echo $_SERVER['PHP_SELF'] . '?naloga_id=' . $naloga_id; ?>" method="POST">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -258,14 +259,14 @@ $conn->close();
 
                         <!-- UČENEC - ODAJA NALOGE -->
                         <?php else: ?>
-                        <?php if (empty($assignments)): ?>
+                        <?php if (!$assignment): ?>
                             <div class="text-center py-4">
-                                <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
-                                <h5 class="text-muted">Trenutno ni na voljo nobenih nalog</h5>
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                                <h5 class="text-warning">Naloga ne obstaja</h5>
+                                <p class="text-muted">Naloga z ID <?php echo htmlspecialchars($naloga_id); ?> ni bila najdena.</p>
                             </div>
                         <?php else: ?>
-                            <?php foreach ($assignments as $assignment): ?>
-                            <div class="assignment-item mb-4 p-3 border rounded">
+                            <div class="assignment-item p-3 border rounded">
                                 <h5 class="fw-bold"><?php echo htmlspecialchars($assignment['opis_naloge']); ?></h5>
                                 <div class="mb-3">
                                     <strong>Navodila:</strong>
@@ -273,12 +274,12 @@ $conn->close();
                                 </div>
                                 
                                 <?php if (empty($assignment['datoteka'])): ?>
-                                <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST" enctype="multipart/form-data">
+                                <form action="<?php echo $_SERVER['PHP_SELF'] . '?naloga_id=' . $naloga_id; ?>" method="POST" enctype="multipart/form-data">
                                     <input type="hidden" name="assignment_id" value="<?php echo $assignment['Id_naloge']; ?>">
                                     
                                     <div class="mb-3">
-                                        <label for="assignment_file_<?php echo $assignment['Id_naloge']; ?>" class="form-label fw-bold">Izberi datoteko:</label>
-                                        <input type="file" class="form-control" name="assignment_file" id="assignment_file_<?php echo $assignment['Id_naloge']; ?>" required>
+                                        <label for="assignment_file" class="form-label fw-bold">Izberi datoteko:</label>
+                                        <input type="file" class="form-control" name="assignment_file" id="assignment_file" required>
                                     </div>
                                     
                                     <div class="text-center">
@@ -295,7 +296,6 @@ $conn->close();
                                 </div>
                                 <?php endif; ?>
                             </div>
-                            <?php endforeach; ?>
                         <?php endif; ?>
                         <?php endif; ?>
                     </div>
