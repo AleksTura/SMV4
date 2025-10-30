@@ -121,20 +121,52 @@ if ($user_type === 'ucenec' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_P
     }
 }
 
-// Pridobi podatke o specifični nalogi
+// Pridobi podatke o specifični nalogi za učenca
 $assignment = null;
-$sql_assignment = "SELECT Id_naloge, opis_naloge, komentar, datoteka 
-                   FROM Naloga 
-                   WHERE Id_naloge = ?";
-$stmt = $conn->prepare($sql_assignment);
-if ($stmt) {
-    $stmt->bind_param("i", $naloga_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $assignment = $result->fetch_assoc();
-    $stmt->close();
+// Pridobi seznam vseh oddanih nalog za učitelja
+$submitted_assignments = [];
+
+if ($user_type === 'ucenec') {
+    // Učenec vidi samo svojo nalogo
+    $sql_assignment = "SELECT Id_naloge, opis_naloge, komentar, datoteka 
+                       FROM Naloga 
+                       WHERE Id_naloge = ?";
+    $stmt = $conn->prepare($sql_assignment);
+    if ($stmt) {
+        $stmt->bind_param("i", $naloga_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $assignment = $result->fetch_assoc();
+        $stmt->close();
+    }
 } else {
-    $error_message = "Napaka pri pridobivanju podatkov o nalogi: " . $conn->error;
+    // Učitelj vidi seznam vseh oddanih nalog za to nalogo
+    $sql_submitted = "SELECT n.Id_naloge, n.opis_naloge, n.komentar, n.datoteka,
+                             u.ime, u.priimek
+                      FROM Naloga n
+                      LEFT JOIN Uporabnik u ON n.Id_naloge = ?
+                      WHERE n.Id_naloge = ? AND n.datoteka IS NOT NULL";
+    $stmt = $conn->prepare($sql_submitted);
+    if ($stmt) {
+        $stmt->bind_param("ii", $naloga_id, $naloga_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $submitted_assignments[] = $row;
+        }
+        $stmt->close();
+    }
+    
+    // Pridobi tudi osnovne podatke o nalogi
+    $sql_assignment_info = "SELECT opis_naloge, komentar FROM Naloga WHERE Id_naloge = ?";
+    $stmt = $conn->prepare($sql_assignment_info);
+    if ($stmt) {
+        $stmt->bind_param("i", $naloga_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $assignment_info = $result->fetch_assoc();
+        $stmt->close();
+    }
 }
 
 $conn->close();
@@ -198,6 +230,20 @@ $conn->close();
         .alert {
             margin-bottom: 20px;
         }
+        
+        .assignment-item {
+            border-left: 4px solid var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 6px;
+            padding: 8px 15px;
+            color: white;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -207,7 +253,7 @@ $conn->close();
                 <div class="glass-card mb-4">
                     <div class="header-card">
                         <h1 class="h3 fw-bold mb-2">
-                            <?php echo $user_type === 'ucitelj' ? 'Ustvarjanje Naloge' : 'Oddaja Naloge'; ?>
+                            <?php echo $user_type === 'ucitelj' ? 'Pregled Oddanih Nalog' : 'Oddaja Naloge'; ?>
                         </h1>
                         <p class="mb-0">
                             <?php echo $user_type === 'ucitelj' ? 'Učiteljski portal' : 'Učenska aplikacija'; ?>
@@ -227,35 +273,51 @@ $conn->close();
                         </div>
                         <?php endif; ?>
 
-                        <!-- UČITELJ - SESTAVLJANJE NALOGE -->
+                        <!-- UČITELJ - PREGLED VSEH ODDANIH NALOG -->
                         <?php if ($user_type === 'ucitelj'): ?>
-                        <form action="<?php echo $_SERVER['PHP_SELF'] . '?naloga_id=' . $naloga_id; ?>" method="POST">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="assignment_description" class="form-label fw-bold">Naslov naloge:</label>
-                                        <input type="text" class="form-control" name="assignment_description" required>
-                                    </div>
+                        
+                        <?php if (isset($assignment_info)): ?>
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <h5 class="fw-bold"><?php echo htmlspecialchars($assignment_info['opis_naloge']); ?></h5>
+                            <div class="mb-2">
+                                <strong>Navodila:</strong>
+                                <p class="mb-0"><?php echo nl2br(htmlspecialchars($assignment_info['komentar'])); ?></p>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <h5 class="fw-bold mb-3">Seznam oddanih nalog:</h5>
+                        
+                        <?php if (empty($submitted_assignments)): ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
+                                <h5 class="text-muted">Še ni oddanih nalog</h5>
+                                <p class="text-muted">Učenci še niso oddali nobene naloge.</p>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($submitted_assignments as $index => $submitted): ?>
+                            <div class="assignment-item p-3 bg-white rounded shadow-sm">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold mb-0">Oddana naloga #<?php echo $index + 1; ?></h6>
+                                    <span class="badge bg-success">Oddano</span>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="subject_content_id" class="form-label fw-bold">ID vsebine:</label>
-                                        <input type="number" class="form-control" name="subject_content_id" required>
-                                    </div>
+                                
+                                <?php if (!empty($submitted['ime'])): ?>
+                                <p class="mb-2"><strong>Učenec:</strong> <?php echo htmlspecialchars($submitted['ime'] . ' ' . $submitted['priimek']); ?></p>
+                                <?php endif; ?>
+                                
+                                <p class="mb-2"><strong>Datoteka:</strong> <?php echo htmlspecialchars(basename($submitted['datoteka'])); ?></p>
+                                
+                                <div class="mt-3">
+                                    <a href="<?php echo htmlspecialchars($submitted['datoteka']); ?>" 
+                                       class="btn download-btn" 
+                                       download>
+                                        <i class="fas fa-download me-2"></i>Prenesi nalogo
+                                    </a>
                                 </div>
                             </div>
-                            
-                            <div class="form-group mb-4">
-                                <label for="instructions" class="form-label fw-bold">Navodila:</label>
-                                <textarea class="form-control" name="instructions" rows="4" required></textarea>
-                            </div>
-                            
-                            <div class="text-center">
-                                <button type="submit" name="create_assignment" class="btn submit-btn">
-                                    <i class="fas fa-save me-2"></i>USTVARI NALOGO
-                                </button>
-                            </div>
-                        </form>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
 
                         <!-- UČENEC - ODAJA NALOGE -->
                         <?php else: ?>
@@ -292,7 +354,14 @@ $conn->close();
                                 <div class="alert alert-success">
                                     <i class="fas fa-check-circle me-2"></i>
                                     <strong>Naloga je oddana</strong>
-                                    <p class="mb-0">Pot datoteke: <?php echo htmlspecialchars($assignment['datoteka']); ?></p>
+                                    <p class="mb-0">Datoteka: <?php echo htmlspecialchars(basename($assignment['datoteka'])); ?></p>
+                                    <div class="mt-2">
+                                        <a href="<?php echo htmlspecialchars($assignment['datoteka']); ?>" 
+                                           class="btn download-btn" 
+                                           download>
+                                            <i class="fas fa-download me-2"></i>Prenesi svojo nalogo
+                                        </a>
+                                    </div>
                                 </div>
                                 <?php endif; ?>
                             </div>
