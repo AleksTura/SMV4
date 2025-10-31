@@ -12,11 +12,13 @@ if ($conn->connect_error) {
 }
 
 $error_message = "";
+$success_message = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username_input = $_POST['username'] ?? '';
-    $password_input = $_POST['password'] ?? '';
-    $user_type = $_POST['user_type'] ?? 'ucenec'; // Dodano: tip uporabnika
+    $user_type = $_POST['user_type'] ?? 'ucenec';
+    $new_password = $_POST['new_password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
     $errors = [];
     
@@ -24,8 +26,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($username_input)) {
         $errors[] = "Polje za uporabniško ime mora biti izpolnjeno";
     }
-    if (empty($password_input)) {
-        $errors[] = "Polje za geslo mora biti izpolnjeno";
+    if (empty($new_password)) {
+        $errors[] = "Polje za novo geslo mora biti izpolnjeno";
+    }
+    if (empty($confirm_password)) {
+        $errors[] = "Polje za potrditev gesla mora biti izpolnjeno";
+    }
+    if ($new_password !== $confirm_password) {
+        $errors[] = "Gesli se ne ujemata";
+    }
+    if (strlen($new_password) < 6) {
+        $errors[] = "Geslo mora vsebovati vsaj 6 znakov";
     }
 
     if (!empty($errors)) {
@@ -39,67 +50,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (empty($priimek)) {
             $error_message = "Vnesite polno ime in priimek (npr: Janez Novak)";
         } else {
+            // Preveri ali uporabnik obstaja
             if ($user_type === 'ucenec') {
-                // Prijava za učenca
-                $sql = "SELECT Id_dijaka, geslo FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
-                $id_column = 'Id_dijaka';
-            } else if ($user_type == 'ucitelj'){
-                // Prijava za učitelja
-                $sql = "SELECT Id_ucitelja, geslo FROM Ucitelj WHERE ime = ? AND priimek = ? LIMIT 1"; 
-                $id_column = 'Id_ucitelja';
-            }
-            else if ($user_type == 'admin'){
-                // Prijava za admina
-                $sql = "SELECT Id_admin, geslo FROM Admin WHERE ime = ? AND priimek = ? LIMIT 1"; 
-                $id_column = 'Id_admin';
+                $check_sql = "SELECT Id_dijaka FROM Ucenec WHERE ime = ? AND priimek = ? LIMIT 1"; 
+                $update_sql = "UPDATE Ucenec SET geslo = ? WHERE ime = ? AND priimek = ?";
+            } else if ($user_type == 'ucitelj') {
+                $check_sql = "SELECT Id_ucitelja FROM Ucitelj WHERE ime = ? AND priimek = ? LIMIT 1"; 
+                $update_sql = "UPDATE Ucitelj SET geslo = ? WHERE ime = ? AND priimek = ?";
+            } else if ($user_type == 'admin') {
+                $check_sql = "SELECT Id_admin FROM Admin WHERE ime = ? AND priimek = ? LIMIT 1"; 
+                $update_sql = "UPDATE Admin SET geslo = ? WHERE ime = ? AND priimek = ?";
             }
             
-            $stmt = $conn->prepare($sql);
-            
-            if (!$stmt) {
-                die("Napaka pri pripravi poizvedbe: " . $conn->error);
-            }
-            
+            // Preveri obstoj uporabnika
+            $stmt = $conn->prepare($check_sql);
             $stmt->bind_param("ss", $ime, $priimek);
             $stmt->execute();
             $result = $stmt->get_result();
 
             if ($result->num_rows === 1) {
-                $row = $result->fetch_assoc();
-                $storedHash = $row['geslo'];
+                // Uporabnik obstaja, posodobi geslo
+                $stmt->close();
                 
-                // Verify password - POSEBNO ZA ADMINA
-                $passwordValid = false;
+                $stmt = $conn->prepare($update_sql);
                 
+                // Za admina shrani nehashirano geslo, za ostale hashiraj
                 if ($user_type == 'admin') {
-                    // Za admina preverjamo nehashirano geslo
-                    $passwordValid = ($password_input === $storedHash);
+                    $hashed_password = $new_password; // Admin - nehashirano
                 } else {
-                    // Za učence in učitelje uporabljamo password_verify
-                    $passwordValid = password_verify($password_input, $storedHash);
+                    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
                 }
                 
-                if ($passwordValid) {
-                    // Set session variables
-                    $_SESSION['user_id'] = $row[$id_column];  
-                    $_SESSION['user_type'] = $user_type;
-                    $_SESSION['logged_in'] = true;
-                    $_SESSION['user_name'] = $ime . ' ' . $priimek; // Shranimo ime za prikaz
-
-                    if ($user_type == 'admin') {
-                        echo "<script>
-                        alert('Prijava uspešna - Admin');
-                        window.location.href = 'admin.php';
-                        </script>";
-                    } else {
-                        echo "<script>
-                        alert('Prijava uspešna - " . ($user_type === 'ucenec' ? 'Učenec' : 'Učitelj') . "');
-                        window.location.href = 'prvastran.php';
-                        </script>";
-                    }
-                    exit;
+                $stmt->bind_param("sss", $hashed_password, $ime, $priimek);
+                
+                if ($stmt->execute()) {
+                    $success_message = "Geslo je bilo uspešno spremenjeno!";
+                    // Počakaj 2 sekundi in preusmeri na prijavo
+                    echo "<script>
+                        setTimeout(function() {
+                            window.location.href = 'prijava.php';
+                        }, 2000);
+                    </script>";
                 } else {
-                    $error_message = "Napačno geslo";
+                    $error_message = "Napaka pri posodabljanju gesla: " . $conn->error;
                 }
             } else {
                 $error_message = ($user_type === 'ucenec' 
@@ -109,7 +102,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         : "Admin s tem imenom in priimkom ne obstaja"));
             }
             
-            $stmt->close();
+            if ($stmt) {
+                $stmt->close();
+            }
         }
     }
 }
@@ -122,7 +117,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="izgled.css">
-    <title>Prijava</title>
+    <title>Pozabljeno geslo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -130,14 +125,13 @@ $conn->close();
     
     <div class="glass-card">
         <div class="header-card">
-            <h1>Prijava</h1>
+            <h1>Pozabljeno geslo</h1>
         </div>
         
         <div class="VpisBox">
-            <form action="prijava.php" method="POST" id="loginForm">
-                <!-- Dodano: Izbira tipa uporabnika -->
+            <form action="pozabljeno_geslo.php" method="POST" id="passwordResetForm">
                 <div class="form-group">
-                    <label for="user_type">Prijavim se kot:</label>
+                    <label for="user_type">Prijavljen sem kot:</label>
                     <select id="user_type" name="user_type" class="form-control" required>
                         <option value="ucenec" <?php echo (($_POST['user_type'] ?? 'ucenec') === 'ucenec') ? 'selected' : ''; ?>>Učenec</option>
                         <option value="ucitelj" <?php echo (($_POST['user_type'] ?? '') === 'ucitelj') ? 'selected' : ''; ?>>Učitelj</option>
@@ -152,24 +146,33 @@ $conn->close();
                 </div>
                
                 <div class="form-group">
-                    <label for="password">Geslo</label>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="Geslo" required>
+                    <label for="new_password">Novo geslo</label>
+                    <input type="password" id="new_password" name="new_password" class="form-control" placeholder="Novo geslo" required>
+                    <small style="color: #666; font-size: 12px;">Geslo mora vsebovati vsaj 6 znakov</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Potrdite novo geslo</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Ponovite novo geslo" required>
                 </div>
 
                 <button type="submit" class="btn">
-                    <i class="fas fa-sign-in-alt me-2"></i>Prijava
+                    <i class="fas fa-key me-2"></i>Zamenjaj geslo
                 </button>
                 
-                <a href="pozabljeno_geslo.php" class="link">Pozabljeno geslo?</a>
-                <a href="registracija.php" class="link">Še nimaš računa? Registriraj se</a>
+                <a href="prijava.php" class="link">Nazaj na prijavo</a>
             </form>
         </div>
     </div>
 
     <script>
-        // Show error popup if there's an error message
+        // Show messages
         <?php if (!empty($error_message)): ?>
-        alert("Napaka pri prijavi:\n<?php echo $error_message; ?>");
+        alert("Napaka:\n<?php echo $error_message; ?>");
+        <?php endif; ?>
+
+        <?php if (!empty($success_message)): ?>
+        alert("<?php echo $success_message; ?>");
         <?php endif; ?>
 
         // Create floating elements
@@ -181,7 +184,6 @@ $conn->close();
                 const element = document.createElement('div');
                 element.classList.add('floating-element');
                 
-                // Random properties
                 const size = Math.random() * 60 + 20;
                 const left = Math.random() * 100;
                 const animationDuration = Math.random() * 30 + 20;
@@ -199,7 +201,24 @@ $conn->close();
             }
         }
         
-        // Initialize on page load
+        // Password validation
+        document.getElementById('passwordResetForm').addEventListener('submit', function(e) {
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            if (newPassword.length < 6) {
+                alert('Geslo mora vsebovati vsaj 6 znakov');
+                e.preventDefault();
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('Gesli se ne ujemata');
+                e.preventDefault();
+                return;
+            }
+        });
+        
         window.onload = createFloatingElements;
     </script>
 </body>

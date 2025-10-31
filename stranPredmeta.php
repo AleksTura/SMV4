@@ -151,11 +151,8 @@ if (isset($_GET['theme_id'])) {
     
     <div class="top-bar">
         <h1><?php echo htmlspecialchars($subject_name); ?></h1>
-        <a href="profil.php" class="user-icon">
+        <a href="profile.php" class="user-icon">
             <i class="fas fa-user"></i>
-        </a>
-        <a href="prijava.php" class="user-icon" session_destroy()>
-            <i class="fas fa-sign-out-alt"></i> Odjavi se
         </a>
     </div>
     

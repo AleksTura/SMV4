@@ -104,7 +104,7 @@ while ($row = $themes_result->fetch_assoc()) {
     
     <div class="top-bar">
         <h1>Dodaj novo snov - <?php echo htmlspecialchars($subject_name); ?></h1>
-        <a href="profil.php" class="user-icon">
+        <a href="profile.php" class="user-icon">
             <i class="fas fa-user"></i>
         </a>
     </div>

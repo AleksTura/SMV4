@@ -73,11 +73,8 @@ if ($user_type == 'ucenec') {
     <div class="top-bar">
         <h1>Spletna učilnica</h1>
         <div class="user-info">
-            <a href="profil.php" class="user-icon">
+            <a href="profile.php" class="user-icon">
                 <i class="fas fa-user"></i>
-            </a>
-            <a href="prijava.php" class="user-icon" session.destroy()>
-                <i class="fas fa-sign-out-alt"></i> Odjavi se
             </a>
         </div>
     </div>
