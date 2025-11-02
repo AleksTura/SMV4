@@ -41,8 +41,7 @@ CREATE TABLE Naloga (
     Id_naloge int PRIMARY KEY,
     Id_vsebine int,
     opis_naloge varchar(50),
-    komentar varchar(500),
-    datoteka varchar(255),
+    navodila varchar(500),
     FOREIGN KEY (Id_vsebine) REFERENCES Vsebina(Id_vsebine)
 );
 
@@ -60,4 +59,14 @@ CREATE TABLE Admin (
     Ime varchar(50),
     Priimek varchar(50),
     Geslo varchar(255)
+);
+
+CREATE TABLE oddajanaloge (
+    id_oddaje INT AUTO_INCREMENT PRIMARY KEY,
+    id_naloge INT NOT NULL,
+    Id_dijaka INT NOT NULL,
+    datoteka VARCHAR(255),
+    datum_oddaje TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_naloge) REFERENCES Naloga(Id_naloge),
+    FOREIGN KEY (id_dijaka) REFERENCES Ucenec(id_dijaka)
 );
