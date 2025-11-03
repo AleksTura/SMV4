@@ -2,12 +2,11 @@
 session_start();
 
     // Povezava z bazo
-    $servername = "localhost"; // Tvoj DB gostitelj
-    $username = "root";        // Tvoje uporabniško ime
-    $password = "";            // Tvoje geslo
-    $dbname = "smv4";   // Tvoje ime baze
+    $servername = "localhost"; 
+    $username = "root";        
+    $password = "";            
+    $dbname = "smv4";   
 
-    // Ustvarimo povezavo z bazo
     $conn = new mysqli($servername, $username, $password, $dbname);
 
     // Preverimo povezavo
@@ -16,7 +15,6 @@ session_start();
     }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Zberemo podatke iz obrazca
     $ime = trim($_POST['ime'] ?? '');
     $priimek = trim($_POST['priimek'] ?? '');
     $naziv = $_POST['naziv'] ?? '';

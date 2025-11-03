@@ -25,6 +25,30 @@ $user_type = $_SESSION['user_type'];
 // Get subject_id - priority: GET > POST > SESSION
 $subject_id = $_GET['subject_id'] ?? $_POST['subject_id'] ?? $_SESSION['subject_id'] ?? null;
 
+$action = $_GET['action'] ?? null;
+if($action === 'delete' && isset($_GET['naloga_id'])) {
+    $naloga_id = $_GET['naloga_id'];
+    
+    // Verify user has permission to delete this exercise
+    if ($user_type == 'ucitelj') {
+            // User has permission, proceed to delete
+            $delete_sql = "DELETE FROM Naloga WHERE Id_naloge = ?";
+            $delete_stmt = $conn->prepare($delete_sql);
+            $delete_stmt->bind_param("i", $naloga_id);
+            if ($delete_stmt->execute()) {
+                // Redirect back to the subject page after deletion
+                header("Location: stranPredmeta.php?subject_id=" . $subject_id);
+                exit;
+            } else {
+                die("Error deleting exercise: " . $conn->error);
+            }
+        }
+        else {
+            
+        die("Only teachers can delete exercises.");
+        }
+}
+
 // Update session if we got a new subject_id from GET or POST
 if ($subject_id && $subject_id != ($_SESSION['subject_id'] ?? null)) {
     $_SESSION['subject_id'] = $subject_id;
@@ -196,7 +220,7 @@ if (isset($_GET['theme_id'])) {
     </div>
     
     <?php else: ?>
-    <!-- Display exercises for selected theme -->
+    <!-- naloge za posamezno vsebino -->
     <div class="list-container">
         <h2 class="form-title">
             Naloge za: <?php echo htmlspecialchars($selected_theme['snov']); ?>
@@ -205,9 +229,7 @@ if (isset($_GET['theme_id'])) {
         
         <ul class="subject-list">
             <?php
-            // Check if there are exercises
             if (count($exercises) > 0) {
-                // Output each exercise
                 foreach($exercises as $exercise) {
                     echo "<li class='subject-item clickable-exercise'>";
                     echo "<i class='fas fa-file-alt subject-icon'></i>";
@@ -218,9 +240,17 @@ if (isset($_GET['theme_id'])) {
                     echo "<strong>" . htmlspecialchars($exercise['opis_naloge']) . "</strong>";
                     echo "</a>";
                     echo "</div>";
-                    
-                    // Dodaj skrito povezavo za preusmeritev
-                    echo "<a href='Naloga.php?naloga_id=" . $exercise['Id_naloge'] . "&theme_id=" . $theme_id . "&subject_id=" . $subject_id . "' class='exercise-link' style='display: none;'></a>";
+                    echo "<a href='Naloga.php?naloga_id=" . $exercise['Id_naloge'] . "&theme_id=" . $theme_id . 
+                    "&subject_id=" . $subject_id . "' class='exercise-link' style='display: none;'></a>";
+                    if ($user_type == 'ucitelj') {
+                        echo "<div class='material-actions'>";
+                        echo "<a href='stranPredmeta.php?naloga_id=" . $exercise['Id_naloge'] . "&theme_id=" . 
+                        $theme_id . "&subject_id=" . $subject_id . "&action=delete' class='delete-btn' ";
+                        echo "onclick=\"return confirm('Ali ste prepričani, da želite izbrisati to nalogo?');\">";
+                        echo "<i class='fas fa-trash-alt'></i> Izbriši";
+                        echo "</a>";
+                        echo "</div>";
+                    }
                     echo "</li>";
                 }
             } else {
