@@ -60,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // 3. Preveri, če se geslo ujema z obstoječim hashom
         if (password_verify($geslo1, $storedHash)) {
-            $errors[] = "Uporabnik s tem imenom, priimkom in geslom že obstaja";
+            $errors[] = "Uporabnik že obstaja";
         } else {
             $errors[] = "Uporabnik s tem imenom in priimkom že obstaja, vendar z drugim geslom";
         }
@@ -79,54 +79,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // 3. Preveri, če se geslo ujema z obstoječim hashom
             if (password_verify($geslo1, $storedHash)) {
-                $errors[] = "Uporabnik s tem imenom, priimkom in geslom že obstaja";
+                $errors[] = "Uporabnik že obstaja";
             } else {
                 $errors[] = "Uporabnik s tem imenom in priimkom že obstaja, vendar z drugim geslom";
             }
         }
     }
-    // Če so napake, jih izpišemo
-
-
-    // V delu, kjer obdelujete napake, namesto shranjevanja v sejo:
+    
     if (!empty($errors)) {
-        echo "<script>alert('" . addslashes(implode(" ", $errors)) . "'); window.history.back();</script>";
+        echo "<script>alert('" . implode(" ", $errors) . "'); window.history.back();</script>";
         exit;
     }
 
 
-
-
-
-
-    // Dodajanje podatkov v bazo (učitelj/dijak)
     if ($naziv === "učitelj") {
         $sql = "INSERT INTO Ucitelj (ime, priimek, geslo) VALUES ('$ime', '$priimek', '$hashedPassword')";
-        $conn->query($sql);
-
-        // Po vnosu, pridobimo ID učitelja
-        $sql = "SELECT Id_ucitelja FROM Ucitelj WHERE ime = '$ime' AND geslo = '$hashedPassword' LIMIT 1"; 
-        $result = $conn->query($sql);
-        if ($result && $row = $result->fetch_assoc()) {
-            $_SESSION["UserId"] = $row['Id_ucitelja'];  // Shranimo ID v sejo
+        
+        if ($conn->query($sql);) {
+            //takoj po vnosu pridobimo id od zadnjega vnosa
+            $id_ucitelja = $conn->insert_id;
+            $_SESSION["UserId"] = $id_ucitelja; //id se shrani v sejo
+        }
+        else {
+            echo "Napaka pri vnosu: " . $conn->error;
         }
     } 
     else if ($naziv === "dijak") {
         $sql = "INSERT INTO Ucenec (ime, priimek, letnik, geslo) VALUES ('$ime', '$priimek', '$letnik', '$hashedPassword')";
-        $conn->query($sql);
-
-        // Po vnosu, pridobimo ID dijaka
-        $sql = "SELECT Id_dijaka FROM Ucenec WHERE ime = '$ime' AND geslo = '$hashedPassword' LIMIT 1"; 
-        $result = $conn->query($sql);
-        if ($result && $row = $result->fetch_assoc()) {
-            $_SESSION["UserId"] = $row['Id_dijaka'];  // Shranimo ID v sejo
+        
+        if ($conn->query($sql);) {
+            $id_dijaka = $conn->insert_id;
+            $_SESSION["UserId"] = $id_dijaka;  
         }
     }
 
     $uporabniškoIme = ucfirst(strtolower($ime)).ucfirst(strtolower($priimek));
 
-    // Po uspešni registraciji preusmeri uporabnika na dobrodošlico ali drugo stran
-    // Po uspešni registraciji pokažemo alert in preusmerimo na prijavo
     echo "<script>
     alert('Registracija uspešna za uporabnika: " . addslashes($uporabniškoIme) . "');
     window.location.href = 'prijava.php';

@@ -20,7 +20,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'ucitelj') {
 
 // Get user ID and subject ID
 $user_id = $_SESSION['user_id'];
-$subject_id = isset($_GET['subject_id']) ? $_GET['subject_id'] : null;
+$subject_id = $_GET['subject_id'] ?? null;
 
 if (!$subject_id) {
     die("Subject ID not specified");
@@ -53,17 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_content'])) {
     if (empty($snov)) {
         $error_message = "Vnesite ime snovi!";
     } else {
-        // Get next available Id_vsebine
-        $id_sql = "SELECT MAX(Id_vsebine) as max_id FROM Vsebina";
-        $id_result = $conn->query($id_sql);
-        $max_id = $id_result->fetch_assoc()['max_id'];
-        $new_id = $max_id ? $max_id + 1 : 1;
         
         // Insert new content
-        $insert_sql = "INSERT INTO Vsebina (Id_vsebine, Id_ucitelja, Id_predmeta, snov) 
-                      VALUES (?, ?, ?, ?)";
+        $insert_sql = "INSERT INTO Vsebina (Id_ucitelja, Id_predmeta, snov) 
+                      VALUES ( ?, ?, ?)";
         $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param("iiis", $new_id, $user_id, $subject_id, $snov);
+        $insert_stmt->bind_param("iis", $user_id, $subject_id, $snov);
         
         if ($insert_stmt->execute()) {
             $success_message = "Snov uspešno dodana!";
@@ -133,7 +128,7 @@ while ($row = $themes_result->fetch_assoc()) {
                 <div class="form-group">
                     <label for="snov"><i class="fas fa-tag"></i> Ime snovi:</label>
                     <input type="text" id="snov" name="snov" class="form-control" 
-                           value="<?php echo isset($_POST['snov']) ? htmlspecialchars($_POST['snov']) : ''; ?>" 
+                           value="<?php echo $_POST['snov'] ??  ''; ?>" 
                            placeholder="Vnesite ime nove snovi" required>
                 </div>
                 
@@ -158,8 +153,8 @@ while ($row = $themes_result->fetch_assoc()) {
                     <i class="fas fa-folder subject-icon"></i>
                     <span><?php echo htmlspecialchars($theme['snov']); ?></span>
                     <div class="material-actions">
-                        <a href="stranPredmeta.php?theme_id=<?php echo $theme['Id_vsebine']; ?>&subject_id=<?php echo $subject_id; ?>" 
-                           class="download-btn">
+                        <a href="stranPredmeta.php?theme_id=<?php echo $theme['Id_vsebine']; ?>&subject_id=<?php 
+                        echo $subject_id; ?>" class="download-btn">
                             <i class="fas fa-eye"></i> Ogled nalog
                         </a>
                     </div>

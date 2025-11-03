@@ -13,7 +13,6 @@ $username = "root";
 $password = "";
 $dbname = "smv4";
 
-// Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
 // Check connection
@@ -27,7 +26,7 @@ $user_type = $_SESSION['user_type'];
 
 // Fetch subjects based on user type
 if ($user_type == 'ucenec') {
-    // For students - get subjects they are enrolled in
+   
     $sql = "SELECT DISTINCT p.Id_predmeta, p.Ime_predmeta
             FROM Predmet p INNER JOIN Dij_predmet dp 
             ON p.Id_predmeta = dp.Id_predmeta INNER JOIN Uci_predmet up 
@@ -40,7 +39,7 @@ if ($user_type == 'ucenec') {
     $result = $stmt->get_result();
     
 } elseif ($user_type == 'ucitelj') {
-    // For teachers - get subjects they teach
+  
     $sql = "SELECT p.Id_predmeta, p.Ime_predmeta
             FROM Predmet p INNER JOIN Uci_predmet up 
             ON p.Id_predmeta = up.Id_predmeta 
@@ -88,7 +87,6 @@ if ($user_type == 'ucenec') {
                 // Output each row of data
                 while($row = $result->fetch_assoc()) {
                     echo "<li class='subject-item'>";
-                    // Use direct link instead of form
                     echo "<a href='stranPredmeta.php?subject_id=" . $row['Id_predmeta'] . "' class='subject-link'>";
                     echo "<i class='fas fa-book subject-icon'></i>";
                     echo "<span class='subject-name'>" . htmlspecialchars($row['Ime_predmeta']) . "</span>";
@@ -141,12 +139,12 @@ if ($user_type == 'ucenec') {
             }
         }
         
-        // Initialize on page load
+        
         window.onload = createFloatingElements;
     </script>
 </body>
 </html>
 <?php
-// Close the database connection
+
 $conn->close();
 ?>
