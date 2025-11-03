@@ -670,9 +670,9 @@ $conn->close();
                                     </div>
                                     
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <a href="predmet.php?theme_id=<?php echo $theme_id; ?>&subject_id=<?php echo $subject_id; ?>" class="btn back-btn">
-                                            <i class="fas fa-arrow-left me-2"></i>Nazaj na naloge
-                                        </a>
+                                        <button onclick="window.history.back()" class="btn history-back-btn">
+                                        <i class="fas fa-arrow-left me-2"></i>Nazaj na prejšnjo stran
+                                    </button>
                                         
                                         <button type="submit" name="create_assignment" class="btn submit-btn">
                                             <i class="fas fa-plus me-2"></i>USTVARI NALOGO
