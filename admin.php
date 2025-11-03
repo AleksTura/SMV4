@@ -699,7 +699,6 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
                             <th>Opis naloge</th>
                             <th>Snov</th>
                             <th>Predmet</th>
-                            <th>Komentar</th>
                             <th>Akcije</th>
                         </tr>
                     </thead>
@@ -710,7 +709,7 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
                             <td><?php echo htmlspecialchars($naloga['opis_naloge']); ?></td>
                             <td><?php echo htmlspecialchars($naloga['snov']); ?></td>
                             <td><?php echo htmlspecialchars($naloga['Ime_predmeta']); ?></td>
-                            <td><?php echo htmlspecialchars(substr($naloga['komentar'] ?? '', 0, 50)) . '...'; ?></td>
+                            
                             <td>
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="delete_exercise">
