@@ -14,9 +14,18 @@ if ($conn->connect_error) {
 $error_message = "";
 $success_message = "";
 
+// Preveri, ali je uporabnik prišel s strani profila (prijavljen kot učitelj)
+$from_profile = false;
+$default_user_type = 'ucenec'; // privzeto za neprijavljene uporabnike
+
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_SESSION['user_type'])) {
+    $from_profile = true;
+    $default_user_type = $_SESSION['user_type']; // uporabi tip iz seje
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username_input = $_POST['username'] ?? '';
-    $user_type = $_POST['user_type'] ?? 'ucenec';
+    $user_type = $_POST['user_type'] ?? $default_user_type;
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
@@ -85,12 +94,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 if ($stmt->execute()) {
                     $success_message = "Geslo je bilo uspešno spremenjeno!";
-                    // Počakaj 2 sekundi in preusmeri na prijavo
-                    echo "<script>
-                        setTimeout(function() {
-                            window.location.href = 'prijava.php';
-                        }, 2000);
-                    </script>";
+                    
+                    // Če je prišel s profila, ga preusmeri nazaj na profil
+                    if ($from_profile) {
+                        echo "<script>
+                            setTimeout(function() {
+                                window.location.href = 'profile.php';
+                            }, 2000);
+                        </script>";
+                    } else {
+                        // Sicer preusmeri na prijavo
+                        echo "<script>
+                            setTimeout(function() {
+                                window.location.href = 'prijava.php';
+                            }, 2000);
+                        </script>";
+                    }
                 } else {
                     $error_message = "Napaka pri posodabljanju gesla: " . $conn->error;
                 }
@@ -126,17 +145,26 @@ $conn->close();
     <div class="glass-card">
         <div class="header-card">
             <h1>Pozabljeno geslo</h1>
+            <?php if ($from_profile): ?>
+                <p style="margin-top: 10px; font-size: 14px; opacity: 0.9;">
+                    <i class="fas fa-info-circle me-1"></i>Spreminjate geslo za svoj račun
+                </p>
+            <?php endif; ?>
         </div>
         
         <div class="VpisBox">
             <form action="pozabljeno_geslo.php" method="POST" id="passwordResetForm">
                 <div class="form-group">
                     <label for="user_type">Prijavljen sem kot:</label>
-                    <select id="user_type" name="user_type" class="form-control" required>
-                        <option value="ucenec" <?php echo (($_POST['user_type'] ?? 'ucenec') === 'ucenec') ? 'selected' : ''; ?>>Učenec</option>
-                        <option value="ucitelj" <?php echo (($_POST['user_type'] ?? '') === 'ucitelj') ? 'selected' : ''; ?>>Učitelj</option>
-                        <option value="admin" <?php echo (($_POST['user_type'] ?? '') === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                    <select id="user_type" name="user_type" class="form-control" required <?php echo $from_profile ? 'disabled' : ''; ?>>
+                        <option value="ucenec" <?php echo ($default_user_type === 'ucenec') ? 'selected' : ''; ?>>Učenec</option>
+                        <option value="ucitelj" <?php echo ($default_user_type === 'ucitelj') ? 'selected' : ''; ?>>Učitelj</option>
+                        <option value="admin" <?php echo ($default_user_type === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     </select>
+                    <?php if ($from_profile): ?>
+                        <input type="hidden" name="user_type" value="<?php echo $default_user_type; ?>">
+                        <small style="color: #666; font-size: 12px;">Spreminjate geslo za vaš račun (<?php echo $default_user_type; ?>)</small>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
@@ -160,7 +188,15 @@ $conn->close();
                     <i class="fas fa-key me-2"></i>Zamenjaj geslo
                 </button>
                 
-                <a href="prijava.php" class="link">Nazaj na prijavo</a>
+                <?php if ($from_profile): ?>
+                    <a href="profile.php" class="link">
+                        <i class="fas fa-arrow-left me-2"></i>Nazaj na profil
+                    </a>
+                <?php else: ?>
+                    <a href="prijava.php" class="link">
+                        <i class="fas fa-arrow-left me-2"></i>Nazaj na prijavo
+                    </a>
+                <?php endif; ?>
             </form>
         </div>
     </div>

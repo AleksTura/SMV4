@@ -20,6 +20,44 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 
+$success_message = "";
+$error_message = "";
+
+// Obdelaj prijavo na predmet
+if ($user_type === 'ucenec' && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['enroll_subject'])) {
+    $selected_subject = $_POST['subject'] ?? '';
+    
+    if (empty($selected_subject)) {
+        $error_message = "Izberite predmet!";
+    } else {
+        // Razčleni izbrani predmet (format: "id_ucitelja|id_predmeta")
+        list($id_ucitelja, $id_predmeta) = explode('|', $selected_subject);
+        
+        // Preveri, ali je učenec že prijavljen na ta predmet
+        $check_sql = "SELECT * FROM Dij_predmet WHERE Id_dijaka = ? AND Id_ucitelja = ? AND Id_predmeta = ?";
+        $stmt = $conn->prepare($check_sql);
+        $stmt->bind_param("iii", $user_id, $id_ucitelja, $id_predmeta);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $error_message = "Na ta predmet ste že prijavljeni!";
+        } else {
+            // Vstavi novo prijavo
+            $insert_sql = "INSERT INTO Dij_predmet (Id_dijaka, Id_ucitelja, Id_predmeta) VALUES (?, ?, ?)";
+            $stmt = $conn->prepare($insert_sql);
+            $stmt->bind_param("iii", $user_id, $id_ucitelja, $id_predmeta);
+            
+            if ($stmt->execute()) {
+                $success_message = "Uspešno ste se prijavili na predmet!";
+            } else {
+                $error_message = "Napaka pri prijavi na predmet: " . $conn->error;
+            }
+        }
+        $stmt->close();
+    }
+}
+
 // Pridobi podatke o uporabniku
 $user_data = null;
 if ($user_type === 'ucitelj') {
@@ -34,6 +72,39 @@ if ($stmt) {
     $stmt->execute();
     $result = $stmt->get_result();
     $user_data = $result->fetch_assoc();
+    $stmt->close();
+}
+
+// Pridobi seznam vseh predmetov z učitelji za prijavo
+$available_subjects = [];
+if ($user_type === 'ucenec') {
+    $subjects_sql = "SELECT p.Id_predmeta, p.Ime_predmeta, u.Id_ucitelja, u.ime, u.priimek 
+                     FROM Predmet p 
+                     JOIN Uci_predmet up ON p.Id_predmeta = up.Id_predmeta 
+                     JOIN Ucitelj u ON up.Id_ucitelja = u.Id_ucitelja 
+                     ORDER BY p.Ime_predmeta, u.priimek, u.ime";
+    $result = $conn->query($subjects_sql);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $available_subjects[] = $row;
+        }
+    }
+    
+    // Pridobi že prijavljene predmete
+    $enrolled_subjects = [];
+    $enrolled_sql = "SELECT p.Id_predmeta, p.Ime_predmeta, u.ime, u.priimek 
+                     FROM Dij_predmet dp 
+                     JOIN Predmet p ON dp.Id_predmeta = p.Id_predmeta 
+                     JOIN Ucitelj u ON dp.Id_ucitelja = u.Id_ucitelja 
+                     WHERE dp.Id_dijaka = ? 
+                     ORDER BY p.Ime_predmeta";
+    $stmt = $conn->prepare($enrolled_sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $enrolled_subjects[] = $row;
+    }
     $stmt->close();
 }
 
@@ -55,6 +126,8 @@ $conn->close();
             --primary: #6a11cb;
             --secondary: #2575fc;
             --success: #28a745;
+            --warning: #ffc107;
+            --info: #17a2b8;
             --light-bg: #f8f9fa;
         }
         
@@ -221,6 +294,52 @@ $conn->close();
             font-weight: 700;
             color: #333;
         }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .password-btn {
+            background: linear-gradient(135deg, var(--warning) 0%, #ffb300 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            color: white;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .password-btn:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+        
+        .enroll-btn {
+            background: linear-gradient(135deg, var(--info) 0%, #138496 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            color: white;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .enroll-btn:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
+        }
         
         .back-btn {
             background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
@@ -233,13 +352,53 @@ $conn->close();
             align-items: center;
             font-weight: 600;
             transition: all 0.3s;
-            margin-top: 20px;
         }
         
         .back-btn:hover {
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .subject-section {
+            margin-top: 40px;
+            padding: 25px;
+            background: var(--light-bg);
+            border-radius: 15px;
+            border-left: 4px solid var(--info);
+        }
+        
+        .subject-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .subject-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--success);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .subject-name {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .teacher-name {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .no-subjects {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
         }
         
         @media (max-width: 768px) {
@@ -255,6 +414,21 @@ $conn->close();
             
             .profile-card {
                 padding: 25px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .action-buttons a {
+                width: 100%;
+                max-width: 250px;
+                justify-content: center;
+            }
+            
+            .subject-list {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -280,6 +454,18 @@ $conn->close();
             </div>
             
             <div class="profile-card">
+                <?php if (!empty($success_message)): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i><?php echo $success_message; ?>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($error_message)): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i><?php echo $error_message; ?>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($user_data): ?>
                     <div class="user-avatar">
                         <?php if ($user_type === 'ucitelj'): ?>
@@ -290,7 +476,6 @@ $conn->close();
                     </div>
                     
                     <h2 class="user-name"><?php echo htmlspecialchars($user_data['ime'] . ' ' . $user_data['priimek']); ?></h2>
-                    
                     
                     <div class="info-grid">
                         <div class="info-card">
@@ -325,6 +510,51 @@ $conn->close();
                             </div>
                         <?php endif; ?>
                     </div>
+
+                    <!-- DODANI GUMBI ZA AKCIJE -->
+                    <div class="action-buttons">
+                        <a href="prvastran.php" class="back-btn">
+                            <i class="fas fa-arrow-left me-2"></i>Nazaj na domačo stran
+                        </a>
+                        <a href="pozabljeno_geslo.php" class="password-btn">
+                            <i class="fas fa-key me-2"></i>Spremeni geslo
+                        </a>
+                        
+                        <?php if ($user_type === 'ucenec'): ?>
+                            <button type="button" class="enroll-btn" data-bs-toggle="modal" data-bs-target="#enrollModal">
+                                <i class="fas fa-book me-2"></i>Prijavi se na predmet
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- PRIKAŽI PRIJAVLJENE PREDMETE ZA UČENCE -->
+                    <?php if ($user_type === 'ucenec'): ?>
+                    <div class="subject-section">
+                        <h4 class="fw-bold mb-3">
+                            <i class="fas fa-list-check me-2"></i>Moji predmeti
+                        </h4>
+                        
+                        <?php if (!empty($enrolled_subjects)): ?>
+                            <div class="subject-list">
+                                <?php foreach ($enrolled_subjects as $subject): ?>
+                                <div class="subject-item">
+                                    <div class="subject-name"><?php echo htmlspecialchars($subject['Ime_predmeta']); ?></div>
+                                    <div class="teacher-name">
+                                        <i class="fas fa-chalkboard-teacher me-1"></i>
+                                        <?php echo htmlspecialchars($subject['ime'] . ' ' . $subject['priimek']); ?>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="no-subjects">
+                                <i class="fas fa-book-open me-2"></i>
+                                Še niste prijavljeni na noben predmet.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
                 <?php else: ?>
                     <div class="alert alert-warning text-center">
                         <i class="fas fa-exclamation-triangle me-2"></i>
@@ -334,6 +564,43 @@ $conn->close();
             </div>
         </div>
     </div>
+
+    <!-- Modal za prijavo na predmet -->
+    <?php if ($user_type === 'ucenec'): ?>
+    <div class="modal fade" id="enrollModal" tabindex="-1" aria-labelledby="enrollModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="enrollModalLabel">
+                        <i class="fas fa-book me-2"></i>Prijava na predmet
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="subject" class="form-label fw-bold">Izberite predmet:</label>
+                            <select class="form-control" id="subject" name="subject" required>
+                                <option value="">-- Izberite predmet --</option>
+                                <?php foreach ($available_subjects as $subject): ?>
+                                    <option value="<?php echo $subject['Id_ucitelja'] . '|' . $subject['Id_predmeta']; ?>">
+                                        <?php echo htmlspecialchars($subject['Ime_predmeta'] . ' - ' . $subject['ime'] . ' ' . $subject['priimek']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
+                        <button type="submit" name="enroll_subject" class="btn enroll-btn">
+                            <i class="fas fa-check me-2"></i>Prijavi se
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
