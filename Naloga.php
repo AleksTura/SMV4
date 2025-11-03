@@ -220,13 +220,59 @@ if ($user_type === 'ucenec' && $assignment_exists && $_SERVER["REQUEST_METHOD"] 
     }
 }
 
+// UČITELJ - DODAJANJE/UREDJANJE KOMENTARJA
+if ($user_type === 'ucitelj' && $assignment_exists && $_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_comment'])) {
+    $comment = $_POST['comment'] ?? '';
+    $student_id = $_POST['student_id'] ?? '';
+    
+    if (empty($student_id)) {
+        $error_message = "Manjka ID učenca!";
+    } else {
+        // Preveri, ali oddaja obstaja
+        $sql_check = "SELECT id_oddaje FROM OddajaNaloge WHERE id_naloge = ? AND id_dijaka = ?";
+        $stmt_check = $conn->prepare($sql_check);
+        
+        if ($stmt_check) {
+            $stmt_check->bind_param("ii", $naloga_id, $student_id);
+            $stmt_check->execute();
+            $result_check = $stmt_check->get_result();
+            $existing_submission = $result_check->fetch_assoc();
+            $stmt_check->close();
+            
+            if ($existing_submission) {
+                // Posodobi komentar
+                $sql = "UPDATE OddajaNaloge SET komentar = ? WHERE id_oddaje = ?";
+                $stmt = $conn->prepare($sql);
+                
+                if ($stmt) {
+                    $stmt->bind_param("si", $comment, $existing_submission['id_oddaje']);
+                    
+                    if ($stmt->execute()) {
+                        $success_message = "Komentar je bil uspešno shranjen!";
+                    } else {
+                        $error_message = "Napaka pri shranjevanju komentarja: " . $stmt->error;
+                    }
+                    
+                    $stmt->close();
+                } else {
+                    $error_message = "Napaka pri pripravi poizvedbe: " . $conn->error;
+                }
+            } else {
+                $error_message = "Oddaja ne obstaja!";
+            }
+        } else {
+            $error_message = "Napaka pri pripravi poizvedbe: " . $conn->error;
+        }
+    }
+}
+
 // Pridobi podatke za prikaz
 $user_submission = null;
 $submitted_assignments = [];
 
 // Za učence: pridobi oddajo tega učenca
 if ($user_type === 'ucenec' && $assignment_exists) {
-    $sql_submission = "SELECT datoteka FROM OddajaNaloge WHERE id_naloge = ? AND id_dijaka = ?";
+    $sql_submission = "SELECT datoteka, komentar FROM OddajaNaloge WHERE id_naloge = ? AND id_dijaka = ?";
     $stmt = $conn->prepare($sql_submission);
     if ($stmt) {
         $stmt->bind_param("ii", $naloga_id, $user_id);
@@ -239,7 +285,7 @@ if ($user_type === 'ucenec' && $assignment_exists) {
 
 // Za učitelje: pridobi seznam vseh oddanih nalog
 if ($user_type === 'ucitelj' && $assignment_exists) {
-    $sql_submitted = "SELECT onl.datoteka, onl.datum_oddaje,
+    $sql_submitted = "SELECT onl.id_oddaje, onl.datoteka, onl.datum_oddaje, onl.komentar,
                              u.ime, u.priimek, u.id_dijaka as id_dijaka
                       FROM OddajaNaloge onl
                       INNER JOIN Ucenec u ON onl.id_dijaka = u.id_dijaka
@@ -297,6 +343,7 @@ $conn->close();
             margin-right: auto;
             background-color: white;
         }
+
 
         .top-bar h1 {
             color: var(--dark);
@@ -361,6 +408,40 @@ $conn->close();
             color: white;
             transform: translateY(-2px);
         }
+
+        .history-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .history-back-btn:hover {
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+        }
+
+        .comment-btn {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            border: none;
+            border-radius: 6px;
+            padding: 8px 15px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .comment-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(255, 193, 7, 0.3);
+        }
         
         .alert {
             margin-bottom: 20px;
@@ -407,16 +488,33 @@ $conn->close();
             margin-bottom: 15px;
             background-color: #f8f9fa;
         }
+        
+        .comment-section {
+            background-color: #f8f9fa;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .comment-form {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-        <div class="floating-elements" id="floatingElements"></div>
+    <div class="floating-elements" id="floatingElements"></div>
     
-    <div class="top-bar">
+    <div class="top-bar">     
         <a href="profile.php" class="user-icon">
             <i class="fas fa-user"></i>
         </a>
     </div>
+    
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-10">
@@ -484,16 +582,66 @@ $conn->close();
                                     
                                     <p class="mb-2"><strong>Datoteka:</strong> <?php echo htmlspecialchars(basename($submitted['datoteka'])); ?></p>
                                     
-                                    <div class="mt-3">
+                                    <!-- Prikaži komentar, če obstaja -->
+                                    <?php if (!empty($submitted['komentar'])): ?>
+                                    <div class="comment-section">
+                                        <strong><i class="fas fa-comment me-2 text-warning"></i>Komentar:</strong>
+                                        <p class="mb-0 mt-1"><?php echo nl2br(htmlspecialchars($submitted['komentar'])); ?></p>
+                                    </div>
+                                    <?php endif; ?>
+                                    
+                                    <div class="mt-3 btn-group">
                                         <a href="<?php echo htmlspecialchars($submitted['datoteka']); ?>" 
                                            class="btn download-btn" 
                                            download>
                                             <i class="fas fa-download me-2"></i>Prenesi nalogo
                                         </a>
+                                        
+                                        <!-- Gumb za komentiranje -->
+                                        <button type="button" class="btn comment-btn" data-bs-toggle="modal" data-bs-target="#commentModal<?php echo $submitted['id_dijaka']; ?>">
+                                            <i class="fas fa-comment me-2"></i>
+                                            <?php echo empty($submitted['komentar']) ? 'Dodaj komentar' : 'Uredi komentar'; ?>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Modal za komentiranje -->
+                                    <div class="modal fade" id="commentModal<?php echo $submitted['id_dijaka']; ?>" tabindex="-1" aria-labelledby="commentModalLabel<?php echo $submitted['id_dijaka']; ?>" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="commentModalLabel<?php echo $submitted['id_dijaka']; ?>">
+                                                        Komentar za <?php echo htmlspecialchars($submitted['ime'] . ' ' . $submitted['priimek']); ?>
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST" action="<?php echo $_SERVER['PHP_SELF'] . '?naloga_id=' . $naloga_id . '&theme_id=' . $theme_id . '&subject_id=' . $subject_id; ?>">
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <label for="comment<?php echo $submitted['id_dijaka']; ?>" class="form-label">Komentar:</label>
+                                                            <textarea class="form-control" id="comment<?php echo $submitted['id_dijaka']; ?>" name="comment" rows="5" placeholder="Vnesite komentar za učenca..."><?php echo htmlspecialchars($submitted['komentar'] ?? ''); ?></textarea>
+                                                        </div>
+                                                        <input type="hidden" name="student_id" value="<?php echo $submitted['id_dijaka']; ?>">
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
+                                                        <button type="submit" name="add_comment" class="btn comment-btn">
+                                                            <i class="fas fa-save me-2"></i>Shrani komentar
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
+
+                            <!-- DODAN GUMB NAZAJ ZA UČITELJE -->
+                            <div class="mt-4 text-center">
+                                <button onclick="window.history.back()" class="btn history-back-btn">
+                                    <i class="fas fa-arrow-left me-2"></i>Nazaj na prejšnjo stran
+                                </button>
+                            </div>
 
                         <?php else: ?>
                             <!-- PRIKAŽI OBLIKO ZA USTVARJANJE NALOGE -->
@@ -559,6 +707,11 @@ $conn->close();
                                         <label for="assignment_file" class="form-label fw-bold">Izberi datoteko:</label>
                                         <input type="file" class="form-control" name="assignment_file" id="assignment_file" required>
                                     </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button onclick="window.history.back()" class="btn history-back-btn">
+                                            <i class="fas fa-arrow-left me-2"></i>Nazaj
+                                        </button>
                                         
                                         <button type="submit" name="submit_assignment" class="btn submit-btn">
                                             <i class="fas fa-paper-plane me-2"></i>ODDAJ NALOGO
@@ -570,6 +723,15 @@ $conn->close();
                                     <i class="fas fa-check-circle me-2"></i>
                                     <strong>Naloga je oddana</strong>
                                     <p class="mb-0">Datoteka: <?php echo htmlspecialchars(basename($user_submission['datoteka'])); ?></p>
+                                    
+                                    <!-- Prikaži komentar učitelja, če obstaja -->
+                                    <?php if (!empty($user_submission['komentar'])): ?>
+                                    <div class="comment-section mt-3">
+                                        <strong><i class="fas fa-comment me-2 text-warning"></i>Komentar učitelja:</strong>
+                                        <p class="mb-0 mt-1"><?php echo nl2br(htmlspecialchars($user_submission['komentar'])); ?></p>
+                                    </div>
+                                    <?php endif; ?>
+                                    
                                     <div class="mt-2 btn-group">
                                         <a href="<?php echo htmlspecialchars($user_submission['datoteka']); ?>" 
                                            class="btn download-btn" 
@@ -582,6 +744,13 @@ $conn->close();
                                             </button>
                                         </form>
                                     </div>
+                                </div>
+                                
+                                <!-- DODAN GUMB NAZAJ ZA UČENCE -->
+                                <div class="mt-4 text-center">
+                                    <button onclick="window.history.back()" class="btn history-back-btn">
+                                        <i class="fas fa-arrow-left me-2"></i>Nazaj na prejšnjo stran
+                                    </button>
                                 </div>
                                 <?php endif; ?>
                             </div>
