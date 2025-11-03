@@ -67,6 +67,7 @@ CREATE TABLE oddajanaloge (
     Id_dijaka INT NOT NULL,
     datoteka VARCHAR(255),
     datum_oddaje TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    komentar VARCHAR(255),
     FOREIGN KEY (id_naloge) REFERENCES Naloga(Id_naloge),
     FOREIGN KEY (id_dijaka) REFERENCES Ucenec(id_dijaka)
 );
