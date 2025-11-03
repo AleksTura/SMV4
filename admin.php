@@ -11,12 +11,12 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-/*
+
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     header('Location: prijava.php');
     exit;
-}*/
+}
 
 $success_message = "";
 $error_message = "";
@@ -263,6 +263,8 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
             font-weight: 600;
+            position: sticky;
+            top: 0;
         }
         
         .admin-table tr:hover {
@@ -315,6 +317,53 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
             padding-bottom: 10px;
             margin-bottom: 20px;
             font-size: 1.4em;
+        }
+        
+        /* Scrollable table container */
+        .table-container {
+            max-height: 450px; /* 10 rows * ~45px height */
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .table-container table {
+            margin-top: 0;
+            border-radius: 0;
+        }
+
+        .table-container table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Show scrollbar only when needed */
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+
+        /* Row counter for debugging */
+        .row-count {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
         }
     </style>
 </head>
@@ -458,68 +507,74 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
             <h2 class="section-title"><i class="fas fa-users"></i> Uporabniki</h2>
             
             <h3><i class="fas fa-chalkboard-teacher"></i> Učitelji</h3>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Ime</th>
-                        <th>Priimek</th>
-                        <th>Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($ucitelji as $ucitelj): ?>
-                    <tr>
-                        <td><?php echo $ucitelj['Id_ucitelja']; ?></td>
-                        <td><?php echo htmlspecialchars($ucitelj['Ime']); ?></td>
-                        <td><?php echo htmlspecialchars($ucitelj['Priimek']); ?></td>
-                        <td>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="delete_user">
-                                <input type="hidden" name="id" value="<?php echo $ucitelj['Id_ucitelja']; ?>">
-                                <input type="hidden" name="type" value="ucitelj">
-                                <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
-                                    <i class="fas fa-trash"></i> Izbriši
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ime</th>
+                            <th>Priimek</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($ucitelji as $ucitelj): ?>
+                        <tr>
+                            <td><?php echo $ucitelj['Id_ucitelja']; ?></td>
+                            <td><?php echo htmlspecialchars($ucitelj['Ime']); ?></td>
+                            <td><?php echo htmlspecialchars($ucitelj['Priimek']); ?></td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="id" value="<?php echo $ucitelj['Id_ucitelja']; ?>">
+                                    <input type="hidden" name="type" value="ucitelj">
+                                    <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
+                                        <i class="fas fa-trash"></i> Izbriši
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row-count">Skupaj: <?php echo count($ucitelji); ?> vrstic</div>
             
             <h3 style="margin-top: 30px;"><i class="fas fa-user-graduate"></i> Učenci</h3>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Ime</th>
-                        <th>Priimek</th>
-                        <th>Letnik</th>
-                        <th>Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($ucenci as $ucenec): ?>
-                    <tr>
-                        <td><?php echo $ucenec['Id_dijaka']; ?></td>
-                        <td><?php echo htmlspecialchars($ucenec['Ime']); ?></td>
-                        <td><?php echo htmlspecialchars($ucenec['Priimek']); ?></td>
-                        <td><?php echo htmlspecialchars($ucenec['Letnik']); ?></td>
-                        <td>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="delete_user">
-                                <input type="hidden" name="id" value="<?php echo $ucenec['Id_dijaka']; ?>">
-                                <input type="hidden" name="type" value="ucenec">
-                                <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
-                                    <i class="fas fa-trash"></i> Izbriši
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ime</th>
+                            <th>Priimek</th>
+                            <th>Letnik</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($ucenci as $ucenec): ?>
+                        <tr>
+                            <td><?php echo $ucenec['Id_dijaka']; ?></td>
+                            <td><?php echo htmlspecialchars($ucenec['Ime']); ?></td>
+                            <td><?php echo htmlspecialchars($ucenec['Priimek']); ?></td>
+                            <td><?php echo htmlspecialchars($ucenec['Letnik']); ?></td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="id" value="<?php echo $ucenec['Id_dijaka']; ?>">
+                                    <input type="hidden" name="type" value="ucenec">
+                                    <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
+                                        <i class="fas fa-trash"></i> Izbriši
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row-count">Skupaj: <?php echo count($ucenci); ?> vrstic</div>
         </div>
 
         
@@ -527,138 +582,150 @@ $dij_predmet = $conn->query("SELECT dp.*, u.Ime as UcenecIme, u.Priimek as Ucene
         <!-- Prikaz dodeljenih predmetov -->
         <div class="admin-section">
             <h2 class="section-title"><i class="fas fa-list-alt"></i> Dodeljeni Predmeti Dijakom</h2>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Dijak</th>
-                        <th>Predmet</th>
-                        <th>Učitelj</th>
-                        <th>Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($dij_predmet as $dijak_predmet): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($dijak_predmet['UcenecIme'] . ' ' . $dijak_predmet['UcenecPriimek']); ?></td>
-                        <td><?php echo htmlspecialchars($dijak_predmet['Ime_predmeta']); ?></td>
-                        <td><?php echo htmlspecialchars($dijak_predmet['UciteljIme'] . ' ' . $dijak_predmet['UciteljPriimek']); ?></td>
-                        <td>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="remove_subject_from_student">
-                                <input type="hidden" name="id_dijaka" value="<?php echo $dijak_predmet['Id_dijaka']; ?>">
-                                <input type="hidden" name="id_predmeta" value="<?php echo $dijak_predmet['Id_predmeta']; ?>">
-                                <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
-                                    <i class="fas fa-unlink"></i> Odstrani
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Dijak</th>
+                            <th>Predmet</th>
+                            <th>Učitelj</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($dij_predmet as $dijak_predmet): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($dijak_predmet['UcenecIme'] . ' ' . $dijak_predmet['UcenecPriimek']); ?></td>
+                            <td><?php echo htmlspecialchars($dijak_predmet['Ime_predmeta']); ?></td>
+                            <td><?php echo htmlspecialchars($dijak_predmet['UciteljIme'] . ' ' . $dijak_predmet['UciteljPriimek']); ?></td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="remove_subject_from_student">
+                                    <input type="hidden" name="id_dijaka" value="<?php echo $dijak_predmet['Id_dijaka']; ?>">
+                                    <input type="hidden" name="id_predmeta" value="<?php echo $dijak_predmet['Id_predmeta']; ?>">
+                                    <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
+                                        <i class="fas fa-unlink"></i> Odstrani
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row-count">Skupaj: <?php echo count($dij_predmet); ?> vrstic</div>
         </div>
         
         <!-- predmeti -->
         <div class="admin-section">
             <h2 class="section-title"><i class="fas fa-book"></i> Predmeti</h2>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Ime predmeta</th>
-                        <th>Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($predmeti as $predmet): ?>
-                    <tr>
-                        <td><?php echo $predmet['Id_predmeta']; ?></td>
-                        <td><?php echo htmlspecialchars($predmet['Ime_predmeta']); ?></td>
-                        <td>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="delete_subject">
-                                <input type="hidden" name="id" value="<?php echo $predmet['Id_predmeta']; ?>">
-                                <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
-                                    <i class="fas fa-trash"></i> Izbriši
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ime predmeta</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($predmeti as $predmet): ?>
+                        <tr>
+                            <td><?php echo $predmet['Id_predmeta']; ?></td>
+                            <td><?php echo htmlspecialchars($predmet['Ime_predmeta']); ?></td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="delete_subject">
+                                    <input type="hidden" name="id" value="<?php echo $predmet['Id_predmeta']; ?>">
+                                    <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
+                                        <i class="fas fa-trash"></i> Izbriši
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row-count">Skupaj: <?php echo count($predmeti); ?> vrstic</div>
         </div>
         
         <!-- snovi-->
         <div class="admin-section">
             <h2 class="section-title"><i class="fas fa-folder"></i> Snovi</h2>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Snov</th>
-                        <th>Predmet</th>
-                        <th>Učitelj</th>
-                        <th>Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($vsebine as $vsebina): ?>
-                    <tr>
-                        <td><?php echo $vsebina['Id_vsebine']; ?></td>
-                        <td><?php echo htmlspecialchars($vsebina['snov']); ?></td>
-                        <td><?php echo htmlspecialchars($vsebina['Ime_predmeta']); ?></td>
-                        <td><?php echo htmlspecialchars($vsebina['UciteljIme'] . ' ' . $vsebina['UciteljPriimek']); ?></td>
-                        <td>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="delete_theme">
-                                <input type="hidden" name="id" value="<?php echo $vsebina['Id_vsebine']; ?>">
-                                <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
-                                    <i class="fas fa-trash"></i> Izbriši
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Snov</th>
+                            <th>Predmet</th>
+                            <th>Učitelj</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($vsebine as $vsebina): ?>
+                        <tr>
+                            <td><?php echo $vsebina['Id_vsebine']; ?></td>
+                            <td><?php echo htmlspecialchars($vsebina['snov']); ?></td>
+                            <td><?php echo htmlspecialchars($vsebina['Ime_predmeta']); ?></td>
+                            <td><?php echo htmlspecialchars($vsebina['UciteljIme'] . ' ' . $vsebina['UciteljPriimek']); ?></td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="delete_theme">
+                                    <input type="hidden" name="id" value="<?php echo $vsebina['Id_vsebine']; ?>">
+                                    <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
+                                        <i class="fas fa-trash"></i> Izbriši
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row-count">Skupaj: <?php echo count($vsebine); ?> vrstic</div>
         </div>
         
         <!-- naloge -->
         <div class="admin-section">
             <h2 class="section-title"><i class="fas fa-tasks"></i> Naloge</h2>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Opis naloge</th>
-                        <th>Snov</th>
-                        <th>Predmet</th>
-                        <th>Komentar</th>
-                        <th>Akcije</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($naloge as $naloga): ?>
-                    <tr>
-                        <td><?php echo $naloga['Id_naloge']; ?></td>
-                        <td><?php echo htmlspecialchars($naloga['opis_naloge']); ?></td>
-                        <td><?php echo htmlspecialchars($naloga['snov']); ?></td>
-                        <td><?php echo htmlspecialchars($naloga['Ime_predmeta']); ?></td>
-                        <td><?php echo htmlspecialchars(substr($naloga['komentar'] ?? '', 0, 50)) . '...'; ?></td>
-                        <td>
-                            <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="delete_exercise">
-                                <input type="hidden" name="id" value="<?php echo $naloga['Id_naloge']; ?>">
-                                <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
-                                    <i class="fas fa-trash"></i> Izbriši
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Opis naloge</th>
+                            <th>Snov</th>
+                            <th>Predmet</th>
+                            <th>Komentar</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($naloge as $naloga): ?>
+                        <tr>
+                            <td><?php echo $naloga['Id_naloge']; ?></td>
+                            <td><?php echo htmlspecialchars($naloga['opis_naloge']); ?></td>
+                            <td><?php echo htmlspecialchars($naloga['snov']); ?></td>
+                            <td><?php echo htmlspecialchars($naloga['Ime_predmeta']); ?></td>
+                            <td><?php echo htmlspecialchars(substr($naloga['komentar'] ?? '', 0, 50)) . '...'; ?></td>
+                            <td>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="delete_exercise">
+                                    <input type="hidden" name="id" value="<?php echo $naloga['Id_naloge']; ?>">
+                                    <button type="submit" class="btn-danger" onclick="return confirm('Ste prepričani?')">
+                                        <i class="fas fa-trash"></i> Izbriši
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row-count">Skupaj: <?php echo count($naloge); ?> vrstic</div>
         </div>
     </div>
 
