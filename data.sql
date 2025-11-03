@@ -171,7 +171,7 @@ INSERT INTO Dij_predmet (Id_dijaka, Id_ucitelja, Id_predmeta) VALUES
 
 -- 6. VPIŠEMO ADMINA
 INSERT INTO Admin (Ime, Priimek, Geslo) VALUES
-('Admin', 'Sistem', '$2y$10$r8R2cLk8Vq1QwE5sY9pZYuKjX7nM2bA1vC3dF6hH9jL4mN7qP8tW');
+('Admin', 'Sistem', '123456');
 
 
 -- 8. PRIMERI DODAJANJA VSEBINE IN NALOG
